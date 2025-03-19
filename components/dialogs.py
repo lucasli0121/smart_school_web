@@ -2,7 +2,7 @@
 Author: liguoqiang
 Date: 2025-03-16 17:25:54
 LastEditors: liguoqiang
-LastEditTime: 2025-03-19 14:20:08
+LastEditTime: 2025-03-19 17:27:38
 Description: 
 '''
 from nicegui import ui
@@ -280,12 +280,12 @@ def person_report_dialog() -> ui.dialog:
 
 
 # 显示课程监控窗口
-def show_course_monitor_dialog(import_students, add_students):
-    with ui.dialog(value=True).props('persistent maximized') as dialog, \
-        ui.card().classes('size-full').style('background-color: #f5f5f5;'):
+def show_course_monitor_dialog(import_students, add_students) -> ui.dialog:
+    with ui.dialog(value=True).props('persistent ') as dialog, \
+        ui.card().classes('p-10').style('background-color: #f5f5f5; width: 75%; max-width: 75%; height: 100%;'):
         with ui.row().classes('w-full items-center place-content-between'):
             labels.bold_1g_black_label('XX中学智能学习教室')
-            with ui.row().classes('items-center place-content-end'):
+            with ui.row().classes('items-center place-content-center'):
                 labels.bold_1g_black_label('代课老师: 王老师')
                 ui.button(icon='close', on_click=dialog.close).props('flat round dense').classes('bg-red-500 text-white')
         with ui.row().classes('w-full item-center place-content-between'):
@@ -293,3 +293,37 @@ def show_course_monitor_dialog(import_students, add_students):
             with ui.row().classes('items-center place-content-end'):
                 ui.button('批量导入', icon='upload', on_click=import_students).classes('text-black')
                 ui.button('添加学生', icon='add', on_click=add_students).classes('text-black')
+        for x in('A', 'B', 'C', 'D', 'E', 'F'):
+            with ui.row().classes('w-full gap-3 mt-2 item-center place-content-start'):
+                ui.label(f'{x}排').classes('text-black font-bold text-sm place-self-center')
+                for i in range(8):
+                    with ui.card().classes('p-2 gap-2').props('flat bordered').style('width: 120px; height: 90px;'):
+                        with ui.row().classes('w-full gap-0 place-content-between'):
+                            labels.normal_sm_black_label(f'{x}-{i+1}')
+                            ui.icon('circle').classes('text-green-500 w-4 h-4')
+                        with ui.row().classes('w-full gap-0 place-content-center'):
+                            labels.normal_sm_black_label('刘婷婷')
+                        with ui.row().classes('w-full gap-0 place-content-end'):
+                            ui.icon('computer').classes('text-gray-300 w-4 h-4')
+        with ui.row().classes('w-full gap-1 mt-2 item-center place-content-start'):
+            ui.icon('square').classes('text-green-500 w-4 h-4')
+            labels.normal_sm_black_label('深度专注')
+            ui.icon('square').classes('text-yellow-500 ml-5 w-4 h-4')
+            labels.normal_sm_black_label('中度专注')
+            ui.icon('square').classes('text-red-500 ml-5 w-4 h-4')
+            labels.normal_sm_black_label('浅度专注')
+            ui.icon('computer').classes('text-green-500 ml-5 w-4 h-4')
+            labels.normal_sm_black_label('设备在线')
+            ui.icon('computer').classes('text-gray-500 ml-5 w-4 h-4')
+            labels.normal_sm_black_label('设备离线')
+        with ui.card().classes('w-full p-5').props('flat'):
+            with ui.row().classes('w-full place-content-start'):
+                labels.bold_sm_black_label('学习状况:')
+            with ui.column().classes('w-full mt-3 place-content-start gap-1'):
+                with ui.row().classes('w-full'):
+                    labels.normal_sm_gray_label('10:46:05')
+                    labels.normal_sm_black_label('刘婷婷同学专注度下降到中度专注')
+                    
+        
+    dialog.open()
+    return dialog
