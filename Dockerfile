@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 WORKDIR /smart_school_web
-COPY . /smart_school_web
+RUN git clone https://gitee.com/lucasli0121/smart_school_web.git
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
