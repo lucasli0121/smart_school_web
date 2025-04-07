@@ -7,31 +7,37 @@ Description:
 '''
 from nicegui import ui
 
+ui.add_css('''
+    .custom-border.q-field--outlined .q-field__control:before {
+        border: 1px solid #65B6FF !important;
+    }
+''')
+
+# 登录用户输入框
 def input_user_w60(placeholder, on_enterkey) -> ui.input:
     with ui.input(placeholder=placeholder) \
-        .props('autofocus rounded-md outlined dense') \
-        .classes('w-60 self-center item-center ') as input:
-        with input.add_slot('append'):
-            ui.icon('person').on('click', on_enterkey).classes('cursor-pointer')
-        # input.add_slot('append', r'''
-        #     <q-btn flat round dense icon="person" @click="() => $parent.$emit('on_enterkey')"/>
-        # ''')
+        .props('autofocus outlined rounded') \
+        .classes('w-[370px] h-[64px] self-center item-center') as input:
+        with input.add_slot('prepend'):
+            ui.icon('img:/static/images/user.png').on('click', on_enterkey).classes('cursor-pointer')
     input.on('keydown.enter', on_enterkey)
     return input
 
 def input_password_w60(placeholder, on_enterkey) -> ui.input:
-    return ui.input(placeholder=placeholder, password=True, password_toggle_button=True) \
-        .props('autofocus rounded-md outlined dense') \
-        .classes('w-60 self-center item-center') \
-        .on('keydown.enter', on_enterkey)
+    with ui.input(placeholder=placeholder, password=True, password_toggle_button=True) \
+        .props('autofocus outlined rounded') \
+        .classes('w-[370px] h-[64px] self-center item-center') as input:
+        with input.add_slot('prepend'):
+            ui.icon('img:/static/images/password.png').on('click', on_enterkey).classes('cursor-pointer')
+    input.on('keydown.enter', on_enterkey)
+    return input
 
 def input_search_w40(placeholder, on_enterkey) -> ui.input:
     with ui.input(placeholder=placeholder) \
-        .props('autofocus rounded-md outlined dense') \
-        .classes('w-40 self-center item-center ') as input:
-        input.add_slot('append', r'''
-            <q-btn flat round dense icon="search" @click="() => $parent.$emit('on_enterkey')"/>
-        ''')
+        .props('autofocus outlined dense') \
+        .classes('w-40 rounded-md self-center custom-border') as input:
+        with input.add_slot('append'):
+            ui.icon('img:/static/images/search@2x.png').on('click', on_enterkey).classes('cursor-pointer')
     input.on('on_enterkey', on_enterkey)
     input.on('keydown.enter', on_enterkey)
     return input
@@ -56,11 +62,11 @@ def date_input_w40(placeholder, on_enterkey) -> ui.input:
                 with ui.row().classes('justify-end'):
                     ui.button('Close', on_click=menu.close).props('flat')
     with date_input.add_slot('append'):
-        ui.icon('edit_calendar').on('click', menu.open).classes('cursor-pointer')
+        ui.icon('img:/static/images/calendar@2x.png').on('click', menu.open).classes('cursor-pointer')
     date_input.on('keydown.enter', on_enterkey)
     return date_input
 
-def selection_w40(options, on_change) -> ui.select:
-    return ui.select(options=options, with_input=False, on_change=lambda e: on_change(e.value)) \
+def selection_w40(options, value, on_change) -> ui.select:
+    return ui.select(options=options, value=value, with_input=False, on_change=lambda e: on_change(e.value)) \
         .props('autofocus rounded-md outlined dense') \
         .classes('w-40 self-center item-center transition-all')

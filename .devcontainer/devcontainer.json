@@ -3,13 +3,16 @@
 // 所以去掉编译部分
 {
     "name": "smart_school_web",
-    "build": {
-        "context": "..",
-        "dockerfile": "../Dockerfile",
-        "args": {
-            "VARIANT": "3.12.5"
-        }
-    },
+    // "build": {
+    //     "context": "..",
+    //     "dockerfile": "../Dockerfile",
+    //     "args": {
+    //         "VARIANT": "3.12.5"
+    //     }
+    // },
+    // 采用现有的镜像
+    // 这个镜像是通过 直接使用DockerFile编译的
+    "image": "smartschoolweb:latest",
     "customizations": {
         "vscode": {
             "extensions": [

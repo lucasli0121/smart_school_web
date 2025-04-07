@@ -11,8 +11,12 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
+WORKDIR /
+# 安装 Git
+RUN apt-get update && apt-get install -y git
+# 克隆 Git 存储库
+RUN git clone https://liguoqiang0121%40qq.com:Aa123456@gitee.com/lucasli0121/smart_school_web.git
 WORKDIR /smart_school_web
-RUN git clone https://gitee.com/lucasli0121/smart_school_web.git
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers

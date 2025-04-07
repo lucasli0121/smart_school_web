@@ -15,6 +15,7 @@
 		{
 			"type": "docker-run",
 			"label": "docker-run: debug",
+			"command": "run",
 			"dependsOn": [
 				"docker-build"
 			],

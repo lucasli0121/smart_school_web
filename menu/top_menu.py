@@ -12,5 +12,12 @@ def logout() -> None:
     ui.navigate.to('/login')
 
 def top_menu() -> None:
-    ui.button(icon='notifications', on_click=lambda: ui.notify('Hello, world!')).classes('text-white')
-    ui.button(icon='logout', on_click=logout).classes('text-white')
+    # ui.button(icon='notifications', on_click=lambda: ui.notify('Hello, world!')).classes('text-white')
+    with ui.button(on_click=logout) \
+        .props('flat') \
+        .classes('bg-transparent') \
+        .style('color: #333333 !important; font-size:16px; width: 100px; height: 36px;'):
+        with ui.row().classes('w-full items-center place-content-center gap-1'):
+            ui.image('/static/images/logout.png').classes('pr-[3px]').style('width: 24px; height: 24px;')
+            ui.label('退出').classes('pl-[3px]')
+        
