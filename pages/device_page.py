@@ -1,15 +1,29 @@
+from typing import Optional
+import pandas as pd
 from nicegui import ui,events
-from components import cards, inputs, tables
-
+from components import cards, inputs, tables, dialogs
+from dao.classroom_dao import \
+    ClassRoomSeatsDao, \
+    get_class_room_seats_by_classes_id, \
+    add_device_to_class_room, \
+    remove_device_from_seats
+from utils import global_vars
+device_table: Optional[ui.table] = None
+seats_cards: Optional[ui.card] = None
 
 def show_device_page(tab_panel):
+    status, result = global_vars.class_room.get_class_room()
+    if status != 200:
+        ui.notify(f'查询教室失败: {result}')
     with ui.row().classes('w-full h-[80px] px-[20px] mt-0 place-content-between gap-0') \
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         with ui.row().classes('h-full items-center'):
             ui.label('总座位数:').classes('text-[20px] font-bold test-[#333333]')
-            ui.label('48').classes('text-[20px] font-bold text-[#65B6FF]')
+            ui.label('48').classes('text-[20px] font-bold text-[#65B6FF]') \
+                .bind_text_from(global_vars.class_room, 'seat_total_number')
             ui.label('已使用座位:').classes('ml-3 text-[20px] font-bold test-[#333333]')
-            ui.label('24').classes('text-[20px] font-bold text-[#65B6FF]')
+            ui.label('24').classes('text-[20px] font-bold text-[#65B6FF]') \
+                .bind_text_from(global_vars.class_room, 'seat_used')
         with ui.row().classes('h-full items-center'):
             ui.button('批量删除', icon='img:/static/images/delete@2x.png', on_click=delete_device) \
                 .classes('w-25 rounded-md text-red') \
@@ -20,18 +34,26 @@ def show_device_page(tab_panel):
             ui.button('添加设备', icon='img:/static/images/add@2x.png', on_click=add_device) \
                 .classes('w-25 rounded-md text-white') \
                 .style('background-color: #65B6FF !important')
-    
-    with ui.card().classes('w-full mt-2 no-shadow') \
-        .props('borderless') \
-        .style('padding: 15px; background-color: #FFFFFF !important; border-radius: 10px;'):
-        row_number = ['A', 'B', 'C', 'D', 'E', 'F']
-        for i in row_number:
-            with ui.row().classes('w-full items-center place-content-evenly'):
-                ui.label(f'{i}排').classes('text-[14px] font-bold text-[#333333]')
-                for j in range(1, 10):
-                    seat_number = f'{i}-{j}'
-                    seat = {'seat_number': seat_number, 'status': 1, 'mac': '00:01:00:00:00:00'}
-                    cards.seat_card(seat)
+    status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+    if status != 200:
+        ui.notify(f'查询教室座位失败: {seats_list}')
+    else:
+        global seats_cards
+        with ui.card().classes('w-full mt-2 no-shadow') \
+            .props('borderless') \
+            .style('padding: 15px; background-color: #FFFFFF !important; border-radius: 10px;') as seats_cards:
+            for i in range(0, global_vars.class_room.seat_row):
+                with ui.row().classes('w-full items-center place-content-evenly'):
+                    row_label = chr(65 + i)  # Convert row index to letter (A, B, C, ...)
+                    ui.label(f'{row_label}排').classes('text-[14px] font-bold text-[#333333]')
+                    for j in range(0, global_vars.class_room.seat_col):
+                        seat_item = seats_list[i * global_vars.class_room.seat_col + j]
+                        if isinstance(seat_item, ClassRoomSeatsDao):
+                            seats_dao: ClassRoomSeatsDao = seat_item
+                            seat = {'seat_no': seats_dao.seat_no, 'is_installed': seats_dao.is_installed, 'mac': seats_dao.mac, 'is_online': seats_dao.is_online}
+                            cards.seat_card(seat)
+                        else:
+                            continue
 
     with ui.card().classes('w-full mt-2 no-shadow') \
         .props('borderless') \
@@ -52,26 +74,146 @@ def show_device_page(tab_panel):
                 ]
                 inputs.selection_w40(online_status, online_status[0], on_change=lambda e: ui.notify(e))
                 inputs.input_search_w60('请输入设备码搜索', on_enterkey=lambda e: ui.notify(e))
-            table_rows = [
-                {'sn': 1, 'seat_number': 'A-1', 'mac': '00:1b:00:00:00:00', 'status': '1', 'online': '1', 'operation': ''},
-                {'sn': 2, 'seat_number': 'A-2', 'mac': '00:2b:ff:00:00:00', 'status': '1', 'online': '0', 'operation': ''},
-                {'sn': 3, 'seat_number': 'A-3', 'mac': '00:3b:fe:00:00:00', 'status': '0', 'online': '1', 'operation': ''},
-                {'sn': 4, 'seat_number': 'A-4', 'mac': '00:4b:00:00:00:00', 'status': '0', 'online': '0', 'operation': ''},
-                {'sn': 5, 'seat_number': 'A-5', 'mac': '00:5b:00:00:00:00', 'status': '0', 'online': '0', 'operation': ''},
-            ]
-            tables.show_devices_table(table_rows, device_edit, device_delete_one)
-        
+            
+            table_rows: list[dict] = []
+            global device_table
+            device_table = tables.show_devices_table(table_rows, device_edit, device_delete_one)
+            if isinstance(seats_list, list):
+                for i in range(0, len(seats_list)):
+                    seat_item = seats_list[i]
+                    if isinstance(seat_item, ClassRoomSeatsDao):
+                        seats_dao: ClassRoomSeatsDao = seat_item
+                        seat = {'sn': i + 1, 'seat_no': seats_dao.seat_no, 'mac': seats_dao.mac, 'is_installed': seats_dao.is_installed, 'is_online': seats_dao.is_online, 'operation': ''}
+                        table_rows.append(seat)
+                    else:
+                        continue
+    refresh_device_table()
+
+'''
+# @description: 刷新设备列表
+# @param None
+# @return: None
+'''
+def refresh_device_table():
+    status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+    if status != 200:
+        ui.notify(f'查询教室座位失败: {str(seats_list)}')
+    else:
+        if seats_cards is not None:
+            seats_cards.clear()
+            with seats_cards:
+                for i in range(0, global_vars.class_room.seat_row):
+                    with ui.row().classes('w-full items-center place-content-evenly'):
+                        row_label = chr(65 + i)  # Convert row index to letter (A, B, C, ...)
+                        ui.label(f'{row_label}排').classes('text-[14px] font-bold text-[#333333]')
+                        for j in range(0, global_vars.class_room.seat_col):
+                            seat_item = seats_list[i * global_vars.class_room.seat_col + j]
+                            if isinstance(seat_item, ClassRoomSeatsDao):
+                                seats_dao: ClassRoomSeatsDao = seat_item
+                                seat = {'seat_no': seats_dao.seat_no, 'is_installed': seats_dao.is_installed, 'mac': seats_dao.mac, 'is_online': seats_dao.is_online}
+                                cards.seat_card(seat)
+                            else:
+                                continue
+        table_rows: list[dict] = []
+        if device_table is not None:
+            device_table.rows.clear()
+            if isinstance(seats_list, list):
+                for i in range(0, len(seats_list)):
+                    seat_item = seats_list[i]
+                    if isinstance(seat_item, ClassRoomSeatsDao):
+                        seats_dao: ClassRoomSeatsDao = seat_item
+                        seat = {'sn': i + 1, 'seat_no': seats_dao.seat_no, 'mac': seats_dao.mac, 'is_installed': seats_dao.is_installed, 'is_online': seats_dao.is_online, 'operation': ''}
+                        table_rows.append(seat)
+                    else:
+                        continue
+                device_table.add_rows(table_rows)
+
+#
+# @description: 添加设备
+# @param None
+# @return: None
+#             
 def add_device():
-    ui.notify('添加设备')
+    def on_ok(seat_no, mac):
+        seatsDao = ClassRoomSeatsDao( \
+            class_room_id=global_vars.class_room.id, \
+            mac=mac, \
+            seat_no=seat_no, \
+            is_online=0, \
+            is_installed=1)
+        status, result = add_device_to_class_room(seatsDao)
+        if status is False:
+            ui.notify(f'导入设备失败: {result}')
+            return
+        ui.notify('添加设备成功')
+        refresh_device_table()
+        dialog.close()
+    dialog = dialogs.show_install_device_dialog(onok=on_ok)
 
+#
+# @description: 批量导入设备
+# @param None
+# @return: None
+#
 def import_device():
-    ui.notify('批量导入')
+    def handle_upload(event):
+        # event.content 是文件的二进制内容
+        import io
+        file_content = io.BytesIO(event.content.read())
+        df = pd.read_excel(file_content)
+        for index, row in df.iterrows():
+            # 处理每一行数据
+            mac = row['mac']
+            seat_no = row['seat_no']
+            seatsDao = ClassRoomSeatsDao( \
+                class_room_id=global_vars.class_room.id, \
+                mac=mac, \
+                seat_no=seat_no, \
+                is_online=0, \
+                is_installed=1)
+            status, result = add_device_to_class_room(seatsDao)
+            if status is False:
+                ui.notify(f'导入设备失败: {result}')
+                return
+        ui.notify('导入设备成功')
+        refresh_device_table()
+        dialog.close()
 
+    with ui.dialog().props('persistent') as dialog, ui.card().classes('w-1/3 h-1/3') \
+        .style('background-color: #FFFFFF !important; border-radius: 10px;'):
+        with ui.row().classes('size-full mt-5 place-content-between'):
+            ui.upload(label="请选择批量上传文件", on_upload=handle_upload) \
+                .props('flat accept=".xls,.xlsx"') \
+                .classes('size-full')
+    dialog.open()
+    
+'''
+# @description: 批量删除设备
+# @param None  
+# @return: None
+# 
+'''
 def delete_device():
-    ui.notify('批量删除')
+    if device_table is not None:
+        selection = device_table.selected
+        seat_no_list = [item['seat_no'] for item in selection]
+        for seat_no in seat_no_list:
+            result, msg = delete_device_with_seatno(seat_no)
+            if result is False:
+                ui.notify(msg)
+                break
+        refresh_device_table()
 
 def device_edit(e: events.GenericEventArguments):
     ui.notify(f'编辑设备 {e.args["mac"]}')
 
 def device_delete_one(e: events.GenericEventArguments):
-    ui.notify(f'删除设备 {e.args["mac"]}')
+    seat_no = e.args['seat_no']
+    result, msg = delete_device_with_seatno(seat_no)
+    ui.notify(msg)
+    if result is True:
+        refresh_device_table()
+
+def delete_device_with_seatno(seat_no: str) -> tuple[bool, str]:
+    class_room_id = global_vars.class_room.id
+    return remove_device_from_seats(class_room_id, seat_no)

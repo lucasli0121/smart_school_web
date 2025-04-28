@@ -1,11 +1,14 @@
 from nicegui import ui
+from dao.classroom_dao import ClassRoomDao
 from navigation import navigation_switcher, HOME_NAVIGATION
 from typing import Optional
-
+from mq.mq_impl import MqImpl
 # Define global variables
+mq: MqImpl = MqImpl()
 header_title: Optional[ui.row] = None
 course_container: Optional[ui.tab_panel] = None
 tab_panels: Optional[ui.tab_panels] = None
+class_room = ClassRoomDao()
 
 def show_main_page_title() -> None:
     if header_title is not None:
@@ -34,6 +37,7 @@ def show_report_title(onback) -> None:
             ui.label('课程管理 / ').classes('ml-2 text-[20px] text-[#333333]')
             ui.label('学习专注度报告').classes('text-[20px] text-[#65B6FF]')
 
+
 def show_person_report_title(onback) -> None:
     if header_title is not None:
         header_title.clear()
@@ -42,4 +46,15 @@ def show_person_report_title(onback) -> None:
                 .classes('w-[24px] h-[24px]') \
                 .on('click', onback)
             ui.label('课程管理 / 学习专注度报告 / ').classes('ml-2 text-[20px] text-[#333333]')
-            ui.label('个人报告').classes('text-[20px] text-[#65B6FF]')            
+            ui.label('个人报告').classes('text-[20px] text-[#65B6FF]')
+
+
+
+def subscribe_online_topic(mac: str, handle_online_func):
+    mq.subscribe(f'hjy-dev/device/heart_beat/{mac.lower()}', handle_online_func)
+def unsubscribe_online_topic(mac: str):
+    mq.unsubscribe(f'hjy-dev/device/heart_beat/{mac.lower()}')
+def subscribe_event_topic(mac: str, handle_event_func):
+    mq.subscribe(f'server-h03/study/event/{mac.lower()}', handle_event_func)
+def unsubscribe_event_topic(mac: str):
+    mq.unsubscribe(f'server-h03/study/event/{mac.lower()}')

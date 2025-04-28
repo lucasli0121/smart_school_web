@@ -70,3 +70,9 @@ def selection_w40(options, value, on_change) -> ui.select:
     return ui.select(options=options, value=value, with_input=False, on_change=lambda e: on_change(e.value)) \
         .props('autofocus rounded-md outlined dense') \
         .classes('w-40 self-center item-center transition-all')
+
+def show_add_device_input(placeholder) -> ui.input:
+    intput = ui.input(placeholder=placeholder) \
+        .props('rounded-md outlined dense') \
+        .classes('size-full self-center item-center custom-border')
+    return intput

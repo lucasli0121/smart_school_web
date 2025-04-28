@@ -18,13 +18,13 @@ from nicegui import ui
 def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table:
     table_columns = [
         {'name': 'id', 'label': '序号', 'field': 'id', 'width': '5%', 'align': 'center'},
-        {'name': 'class', 'label': '班级', 'field': 'class', 'width': '10%', 'align': 'center'},
+        {'name': 'classes', 'label': '班级', 'field': 'classes', 'width': '10%', 'align': 'center'},
         {'name': 'subject', 'label': '科目', 'field': 'subject', 'width': '10%', 'align': 'center'},
         {'name': 'teacher', 'label': '教师', 'field': 'teacher', 'width': '10%', 'align': 'center'},
-        {'name': 'start_time', 'label': '开始时间', 'field': 'start_time', 'width': '15%', 'align': 'center'},
+        {'name': 'begin_time', 'label': '开始时间', 'field': 'begin_time', 'width': '15%', 'align': 'center'},
         {'name': 'end_time', 'label': '结束时间', 'field': 'end_time', 'width': '15%', 'align': 'center'},
         {'name': 'status', 'label': '状态', 'field': 'status', 'width': '10%', 'align': 'center'},
-        {'name': 'student_roster', 'label': '学生名单', 'field': 'student_roster', 'width': '10%', 'align': 'center'},
+        {'name': 'name_list', 'label': '学生名单', 'field': 'name_list', 'width': '10%', 'align': 'center'},
         {'name': 'operation', 'label': '操作', 'field': 'operation', 'width': '10%', 'align': 'center'}
     ]
     with ui.table(
@@ -61,6 +61,16 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
                     <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #27CACA; border-radius: 17px;">
                        <font style="font-size: 12px; color: white;">已结束</font>
                     </div>
+                </template>
+            </q-td>
+        ''')
+        table.add_slot('body-cell-name_list', r'''
+            <q-td auto-width key="name_list" :props="props" style="">
+                <template v-if="props.row.name_list == 0">
+                    <font style="font-size: 12px; color: #FF4D4D;">未添加</font>
+                </template>
+                <template v-else-if="props.row.name_list == 1">
+                    <font style="font-size: 12px; color: #333333;">已添加</font>
                 </template>
             </q-td>
         ''')
@@ -142,16 +152,16 @@ def show_report_table(datas, show_person_report) -> ui.table:
 def show_devices_table(datas, on_device_edit, on_device_delete) -> ui.table:
     columns = [
         {'name': 'sn', 'label': '序号', 'field': 'sn', 'width': '5%', 'align': 'center'},
-        {'name': 'seat_number', 'label': '座位号', 'field': 'seat_number', 'width': '5%', 'align': 'center'},
+        {'name': 'seat_no', 'label': '座位号', 'field': 'seat_no', 'width': '5%', 'align': 'center'},
         {'name': 'mac', 'label': '设备码', 'field': 'mac', 'width': '10%', 'align': 'center'},
-        {'name': 'status', 'label': '状态', 'field': 'status', 'width': '10%', 'align': 'center'},
-        {'name': 'online', 'label': '在线', 'field': 'online', 'width': '10%', 'align': 'center'},
+        {'name': 'is_installed', 'label': '状态', 'field': 'is_installed', 'width': '10%', 'align': 'center'},
+        {'name': 'is_online', 'label': '在线', 'field': 'is_online', 'width': '10%', 'align': 'center'},
         {'name': 'operation', 'label': '操作', 'field': 'operation', 'width': '20%', 'align': 'center'}
     ]
     with ui.table(
         columns=columns,
         rows=datas,
-        row_key='sn',
+        row_key='seat_no',
         selection='multiple',
         pagination={'rowsPerPage': 10, 'sortBy': 'sn', 'page': 1}) \
             .props('table-header-style="color: white; font-size: 16px; background-color: #65B6FF;"') \
@@ -166,9 +176,9 @@ def show_devices_table(datas, on_device_edit, on_device_delete) -> ui.table:
         #         </q-th>
         #     </q-tr>
         # ''')
-        table.add_slot('body-cell-status', r'''
-            <q-td auto-width key="status" :props="props">
-                <template v-if="props.row.status == 0">
+        table.add_slot('body-cell-is_installed', r'''
+            <q-td auto-width key="is_installed" :props="props">
+                <template v-if="props.row.is_installed == 0">
                     <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #FF8787; border-radius: 17px;">
                        <font style="font-size: 12px; color: white;">未安装</font>
                     </div>
@@ -180,15 +190,15 @@ def show_devices_table(datas, on_device_edit, on_device_delete) -> ui.table:
                 </template>
             </q-td>
         ''')
-        table.add_slot('body-cell-online', r'''
-            <q-td auto-width key="online" :props="props">
-                <template v-if="props.row.online == -1">
-                    <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #C5C5C5; border-radius: 17px;">
+        table.add_slot('body-cell-is_online', r'''
+            <q-td auto-width key="is_online" :props="props">
+                <template v-if="props.row.is_online == -1">
+                    <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #FF8787; border-radius: 17px;">
                        <font style="font-size: 12px; color: white;">未绑定</font>
                     </div>
                 </template>
-                <template v-if="props.row.online == 0">
-                    <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #FF8787; border-radius: 17px;">
+                <template v-if="props.row.is_online == 0">
+                    <div style="text-align: center; width: 50px; height: 30px; line-height: 30px; background-color: #C5C5C5; border-radius: 17px;">
                        <font style="font-size: 12px; color: white;">离线</font>
                     </div>
                 </template>

@@ -6,7 +6,10 @@ LastEditTime: 2025-03-19 17:27:38
 Description: 
 '''
 from nicegui import ui
-from components import labels, progress, tables
+from components import cards, inputs, labels, progress, tables
+from dao.classroom_dao import ClassRoomSeatsDao, get_class_room_seats_by_classes_id
+from dao.course_dao import StudentInSeatsDao, query_student_in_seat
+from utils import global_vars
 
 # 显示课程报告窗口   
 def show_course_report_dialog(print_report, download_report, show_person_report) -> ui.dialog:
@@ -325,5 +328,138 @@ def show_course_monitor_dialog(import_students, add_students) -> ui.dialog:
                     labels.normal_sm_black_label('刘婷婷同学专注度下降到中度专注')
                     
         
+    dialog.open()
+    return dialog
+
+#
+# 显示设备安装窗口
+# 设备安装窗口
+def show_install_device_dialog(onok) -> ui.dialog:
+    with ui.dialog(value=True).props('persistent ') as dialog, \
+        ui.card().classes('p-[20px]').style('background-color: #FFFFFF; border-radius: 10px; width: 50%; max-width: 60%;'):
+        with ui.column().classes('w-full h-full'):
+            with ui.row().classes('w-full items-center place-content-start'):
+                ui.label('添加设备').classes('text-[#333333] text-[20px] font-weight-500')
+            with ui.row().classes('w-full mt-[10px] h-[20px] items-center place-content-start gap-0'):
+                ui.label('选择设备号').classes('text-[#333333] text-[16px] font-weight-500 ')
+                ui.icon('square').classes('text-[#888888] w-4 h-4 ml-3 ')
+                ui.label('已添加').classes('text-[#666666] text-[12px] font-weight-400 ')
+                ui.icon('square').classes('text-[#65B6FF] w-4 h-4 ml-3')
+                ui.label('可添加').classes('text-[#666666] text-[12px] font-weight-400 ')
+            status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+            if status != 200:
+                ui.notify(f'查询教室座位失败: {seats_list}')
+            else:
+                with ui.column().classes('w-full h-full items-center place-content-start') as seats_column:
+                    select_seat_no = ""
+                    def set_select_seat_no(value):
+                        nonlocal select_seat_no
+                        select_seat_no = value
+                        seats_column.clear()
+                        with seats_column:
+                            for i in range(0, global_vars.class_room.seat_row):
+                                with ui.row().classes('w-full items-center place-content-around gap-0'):
+                                    for j in range(0, global_vars.class_room.seat_col):
+                                        seat_item = seats_list[i * global_vars.class_room.seat_col + j]
+                                        if isinstance(seat_item, ClassRoomSeatsDao):
+                                            seats_dao: ClassRoomSeatsDao = seat_item
+                                            cards.seat_card_only_number( \
+                                                seats_dao.seat_no, \
+                                                seats_dao.is_installed, \
+                                                select_seat_no == seats_dao.seat_no, \
+                                                on_click = lambda value: set_select_seat_no(value) \
+                                            )
+                set_select_seat_no("")
+            with ui.row().classes('w-full mt-[10px] items-center place-content-start'):
+                ui.label('设备号码').classes('text-[#333333] text-[16px] font-weight-500')
+            with ui.row().classes('w-full item-center place-content-start'):
+                mac_input = inputs.show_add_device_input('请输入设备号码')
+            with ui.row().classes('w-full mt-[10px] item-center place-content-end'):
+                ui.button('取消', color=None, on_click=dialog.close) \
+                    .props('flat') \
+                    .classes('w-[120px] text-[16px] text-[#888888] font-[400]') \
+                    .style('background-color: #FFFFFF !important;border-radius: 10px;border: 1px solid #888888;')
+                def on_button_ok():
+                    if select_seat_no == "":
+                        ui.notify('请选择设备号码')
+                        return
+                    if mac_input.value == "":
+                        ui.notify('请输入设备号码')
+                        return
+                    onok(select_seat_no, mac_input.value)
+                ui.button('确定', color=None, on_click=on_button_ok) \
+                    .props('flat') \
+                    .classes('w-[120px] text-[16px] text-white font-[400]') \
+                    .style('background-color: #65B6FF !important; border-radius: 10px')
+            
+    dialog.open()
+    return dialog
+
+#
+# 显示增加学生窗口
+# 增加学生窗口
+#
+def show_add_student_dialog(course_id:int, onok) -> ui.dialog:
+    with ui.dialog(value=True).props('persistent ') as dialog, \
+        ui.card().classes('p-[20px]').style('background-color: #FFFFFF; border-radius: 10px; width: 50%; max-width: 60%;'):
+        with ui.column().classes('w-full h-full'):
+            with ui.row().classes('w-full items-center place-content-start'):
+                ui.label('添加学生').classes('text-[#333333] text-[20px] font-weight-500')
+            with ui.row().classes('w-full mt-[10px] h-[20px] items-center place-content-start gap-0'):
+                ui.label('选择座位').classes('text-[#333333] text-[16px] font-weight-500 ')
+                ui.icon('square').classes('text-[#888888] w-4 h-4 ml-3 ')
+                ui.label('已添加').classes('text-[#666666] text-[12px] font-weight-400 ')
+                ui.icon('square').classes('text-[#65B6FF] w-4 h-4 ml-3')
+                ui.label('可添加').classes('text-[#666666] text-[12px] font-weight-400 ')
+            status, result = query_student_in_seat(global_vars.class_room.id, course_id)
+            if status != 200:
+                ui.notify(f'查询学生座位失败: {result}')
+            else:
+                with ui.column().classes('w-full h-full items-center place-content-start') as seats_column:
+                    select_seat_no = ""
+                    def set_select_seat_no(value):
+                        nonlocal select_seat_no
+                        select_seat_no = value
+                        seats_column.clear()
+                        with seats_column:
+                            for i in range(0, global_vars.class_room.seat_row):
+                                with ui.row().classes('w-full items-center place-content-around gap-0'):
+                                    for j in range(0, global_vars.class_room.seat_col):
+                                        seat_item = result[i * global_vars.class_room.seat_col + j]
+                                        if isinstance(seat_item, StudentInSeatsDao):
+                                            seats_dao: StudentInSeatsDao = seat_item
+                                            is_installed = seats_dao.name != None and seats_dao.name != ""
+                                            cards.seat_card_only_number( \
+                                                seats_dao.seat_no, \
+                                                is_installed, \
+                                                select_seat_no == seats_dao.seat_no, \
+                                                on_click = lambda value: set_select_seat_no(value) \
+                                            )
+                set_select_seat_no("")
+            with ui.row().classes('w-full mt-[10px] items-center place-content-start'):
+                ui.label('学生名称').classes('text-[#333333] text-[16px] font-weight-500')
+            with ui.row().classes('w-full item-center place-content-start'):
+                name_input = inputs.show_add_device_input('请输入学生名称')
+            with ui.row().classes('w-full mt-[10px] items-center place-content-start'):
+                ui.label('性别').classes('text-[#333333] text-[16px] font-weight-500')
+                gender_radio = ui.radio(['男', '女'], value='男').props('inline')
+            with ui.row().classes('w-full mt-[10px] item-center place-content-end'):
+                ui.button('取消', color=None, on_click=dialog.close) \
+                    .props('flat') \
+                    .classes('w-[120px] text-[16px] text-[#888888] font-[400]') \
+                    .style('background-color: #FFFFFF !important;border-radius: 10px;border: 1px solid #888888;')
+                def on_button_ok():
+                    if select_seat_no == "":
+                        ui.notify('请选择座位')
+                        return
+                    if name_input.value == "":
+                        ui.notify('请输入学生名称')
+                        return
+                    onok(select_seat_no, name_input.value, gender_radio.value)
+                ui.button('确定', color=None, on_click=on_button_ok) \
+                    .props('flat') \
+                    .classes('w-[120px] text-[16px] text-white font-[400]') \
+                    .style('background-color: #65B6FF !important; border-radius: 10px')
+            
     dialog.open()
     return dialog

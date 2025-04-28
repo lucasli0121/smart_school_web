@@ -5,17 +5,42 @@ LastEditors: liguoqiang
 LastEditTime: 2025-03-19 14:57:09
 Description: 
 '''
+import asyncio
 import os
+import threading
+from time import sleep
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from nicegui import ui,app
+from components import cards
+from dao.classroom_dao import ClassRoomSeatsDao, get_class_room_seats_by_classes_id
 from resources import strings
+import urllib3 as ulib
+import logging
+import logging.config
+import yaml
+from utils import global_vars
 from pages import login_page, main_page
+from api import api_manager
 
 import matplotlib
 matplotlib.use('Agg')  # 使用非图形后端
 import matplotlib.pyplot as plt
+
+def init_logger():
+    cfg_path = 'cfg/log.yaml'
+    if os.path.exists(cfg_path):
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            config = yaml.load(f, yaml.FullLoader)
+            logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s-%(name)s-%(lineno)s-%(levelname)s-%(message)s",
+            filename="log/smart_school.log",
+            filemode="w",
+        )
 
 # 添加以下代码以注册静态文件目录
 # 获取当前文件所在目录的路径
@@ -74,7 +99,27 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(AuthMiddleware)
 
+def app_shutdown():
+    status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+    if status == 200:
+        for item in seats_list:
+            if isinstance(item, ClassRoomSeatsDao):
+                if item.mac is not None and item.mac != "":
+                    global_vars.unsubscribe_online_topic(item.mac)
+                    
+app.on_shutdown(app_shutdown)
 
+def task_main():
+    while True:
+        cards.update_student_status()
+        sleep(1)
+    
 
 if __name__ in {"__main__", "__mp_main__"}:
+    if global_vars.mq.connect() is False:
+        print("MQTT连接失败，请检查配置文件")
+        exit(1)
+    global_vars.mq.loop_for_thread()
+    api_manager.api_https = ulib.PoolManager(timeout=30.0)
+    threading.Thread(target=task_main).start()
     ui.run(title=strings.APP_NAME, port=8083, storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')
