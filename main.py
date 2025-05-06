@@ -80,18 +80,12 @@ ui.add_head_html('''
 # 定义全局颜色
 # ui.colors(primary='#65B6FF', onprimary='#FFFFFF', secondary='#65B6FF', accent='#111B1E', positive='#53B689')
 
-# 预先构建字体缓存
-plt.plot([0,1], [0,1])
-plt.savefig('font_cache_test.png')  # 保存到有效的文件路径
-
-unrestricted_page_routes = {'/login', '/static'}
-
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if not app.storage.user.get('authenticated', False):
             if not request.url.path.startswith('/_nicegui') \
                 and not request.url.path.startswith('/static') \
-                and request.url.path not in unrestricted_page_routes:
+                and not request.url.path.startswith('/course_report'):
                 app.storage.user['referrer_path'] = request.url.path
                 return RedirectResponse('/login')
         return await call_next(request)
@@ -109,17 +103,10 @@ def app_shutdown():
                     
 app.on_shutdown(app_shutdown)
 
-def task_main():
-    while True:
-        cards.update_student_status()
-        sleep(1)
-    
-
 if __name__ in {"__main__", "__mp_main__"}:
     if global_vars.mq.connect() is False:
         print("MQTT连接失败，请检查配置文件")
         exit(1)
     global_vars.mq.loop_for_thread()
     api_manager.api_https = ulib.PoolManager(timeout=30.0)
-    threading.Thread(target=task_main).start()
     ui.run(title=strings.APP_NAME, port=8083, storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')

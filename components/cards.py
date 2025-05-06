@@ -6,7 +6,7 @@ from queue import Queue
 def seat_card(seat):
     with ui.card().classes('w-[120px] h-[90px]') \
         .props('flat bordered') \
-        .style('padding: 5px; border: 1px solid #65B6FF; border-radius: 10px; background: #EFF3FC') as card:
+        .style('padding: 5px; border: 1px solid #65B6FF; border-radius: 10px; background: #FCFEFF') as card:
         with ui.column().classes('size-full items-center place-content-start gap-0 p-0 m-0'):
             with ui.row().classes('w-full items-center place-content-between'):
                 ui.label(f'{seat["seat_no"]}').classes('text-[14px] text-[#888888] self-center font-bold')
@@ -181,7 +181,7 @@ def update_online_student_in_card(mac: str, is_online: int):
 # 如果队列有内容，则调用更新学生卡片的专注度和在线状态
 # @param None
 # @return {*}
-def update_student_status():
+def check_student_status_queue():
     if not student_status_queue.empty():
         study_status = student_status_queue.get()
         if study_status is None:

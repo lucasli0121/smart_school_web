@@ -290,4 +290,5 @@ def query_student_in_seat(class_room_id: int, course_id: int) -> tuple[int, str|
         else:
             return jobj["code"], jobj["message"]
     else:
-        return result.status, str(result.data)        
+        return result.status, str(result.data)
+    

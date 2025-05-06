@@ -3,7 +3,7 @@ from typing import Any
 import urllib3 as ulib
 
 api_https: ulib.PoolManager
-server_url = "http://192.168.1.102:9085/v1"  # Replace with your actual server URL
+server_url = "http://host.docker.internal:9085/v1"  # Replace with your actual server URL
 url_header = {"Content-Type": "application/json"}
 
 """

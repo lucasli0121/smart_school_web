@@ -80,10 +80,7 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
                     <q-btn size="sm" flat round dense icon="img:/static/images/visible.png"
                         @click="() => $parent.$emit('show_monitor', props.row)"
                     />
-                    <span style="display: inline-block; width: 5px;"></span>
-                    <q-btn size="sm" flat round dense icon="img:/static/images/delete_mini.png"
-                        @click="() => $parent.$emit('show_delete', props.row)"
-                    />
+                    
                 </template>
                 <template v-else-if="props.row.status == 1">
                     <q-btn size="sm" flat round dense icon="img:/static/images/visible.png"
@@ -95,6 +92,10 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
                         @click="() => $parent.$emit('show_report', props.row)"
                     />
                 </template>
+                <span style="display: inline-block; width: 5px;"></span>
+                <q-btn size="sm" flat round dense icon="img:/static/images/delete_mini.png"
+                    @click="() => $parent.$emit('show_delete', props.row)"
+                />
             </q-td>
         ''')
         table.on('show_monitor', show_monitor)

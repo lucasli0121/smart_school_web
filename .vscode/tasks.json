@@ -2,18 +2,20 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "docker-build",
+			"type": "process",
 			"label": "docker-build",
-			"platform": "python",
-			"dockerBuild": {
-				"tag": "smartschoolweb:latest",
-				"dockerfile": "${workspaceFolder}/Dockerfile",
-				"context": "${workspaceFolder}",
-				"pull": true
-			}
+			"command": "docker",
+			"args": [
+				"build",
+				"-t",
+				"smartschoolweb:latest",
+				"-f",
+				"${workspaceFolder}/Dockerfile",
+				"${workspaceFolder}"
+			]
 		},
 		{
-			"type": "docker-run",
+			"type": "process",
 			"label": "docker-run: debug",
 			"command": "run",
 			"dependsOn": [

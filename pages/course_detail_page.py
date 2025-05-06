@@ -17,6 +17,7 @@ student_card_column: Optional[ui.column] = None
 start_course_button: Optional[ui.button] = None
 end_course_button: Optional[ui.button] = None
 study_status_column: Optional[ui.column] = None
+check_event_timer: Optional[ui.timer] = None
 
 def show_course_detail_page(course_id: int) -> None:
     global course_dao
@@ -70,6 +71,7 @@ def show_course_detail_page(course_id: int) -> None:
                         with ui.row().classes('w-full'):
                             ui.label('10:46:05').classes('text-[14px] text-[#333333]')
                             ui.label('刘婷婷同学专注度下降到中度专注').classes('text-[14px] text-[#333333]')
+                    study_status_column.clear()
         with ui.row().classes('w-full mt-2 items-center place-content-end'):
             global start_course_button
             global end_course_button
@@ -81,7 +83,16 @@ def show_course_detail_page(course_id: int) -> None:
                 .props('flat') \
                 .classes('w-[120px] text-[16px] text-[#FF4D4D] font-[400]') \
                 .style('background-color: rgba(255,77,77,0.39) !important; border-radius: 10px')
-            end_course_button.set_visibility(False)
+            if course_dao.status == 1:
+                start_course_button.set_visibility(False)
+                end_course_button.set_visibility(True)
+            elif course_dao.status == 2:
+                start_course_button.set_visibility(False)
+                end_course_button.set_visibility(False)
+            else:
+                start_course_button.set_visibility(True)
+                end_course_button.set_visibility(False)
+            
 
 #
 # @description: 刷新学生座位卡片
@@ -109,6 +120,11 @@ def refresh_student_seat_card():
                                 students_seat_subscribe(mac=obj.mac)
                             students = {'seat_number': obj.seat_no, 'mac': obj.mac, 'name': obj.name, 'status': obj.is_online}
                             cards.student_in_seat_card(students)
+        global check_event_timer
+        if check_event_timer is not None:
+            check_event_timer.cancel()
+        check_event_timer = ui.timer(1, cards.check_student_status_queue)
+        check_event_timer.activate()
 
 #
 # @description: 更新学生学习状态列表
@@ -128,7 +144,7 @@ def update_study_status_column(name: str, concentration: int, up: int) -> None:
                     upstr = '下降至'
                 else:
                     upstr = '保持在'
-                if concentration > 0:
+                if concentration > 0 and up != 0:
                     ui.label(datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%H:%M:%S')).classes('text-[14px] text-[#333333]')
                     if concentration == 1: # 低专注
                         ui.label(f'{name}同学专注度{upstr}低度专注').classes('text-[14px] text-[#333333]')
@@ -150,6 +166,7 @@ def students_seat_subscribe(mac: str) -> None:
         jsobj = json.loads(msg.payload)
         event_dao = H03EventDao()
         event_dao.from_json(jsobj)
+        cards.update_online_student_in_card(mac, 1)
         cards.update_concentration_student_in_card(event_dao.mac, event_dao.focus_status, update_study_status_column)
     global_vars.subscribe_event_topic(mac, event_msg)
 #
@@ -187,8 +204,6 @@ def import_students():
                 upload.reset()
                 return
         ui.notify('导入学生成功')
-        course_dao.name_list = 1
-        course_dao.update_course()
         refresh_student_seat_card()
         dialog.close()
 

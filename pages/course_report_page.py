@@ -1,13 +1,32 @@
+from dataclasses import dataclass
 from datetime import datetime
+import time
 import json
 from typing import Optional
 from nicegui import ui
-import pandas as pd
-from components import dialogs, tables, cards
+from components import tables, cards
 from utils import global_vars
 from dao.course_dao import CourseDao
+from dao.course_report_dao import CourseReportDao, get_course_report_by_course_id, CourseStudentsConcentrationDao, query_course_student_concentration
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import threading as thread
+from queue import Queue
 
 course_dao = CourseDao()
+download_progress_row : Optional[ui.row] = None
+download_progress: Optional[ui.circular_progress] = None
+download_button : Optional[ui.button] = None
+download_timer: Optional[ui.timer] = None
+
+@dataclass
+class ProgressValue:
+    value: float = 0.0
+    def __init__(self, value: float = 0.0):
+        self.value = value
+    def set_value(self, value: float):
+        self.value = value
+progress_value = ProgressValue()
 
 #
 # @description: 显示课程报告页面
@@ -21,6 +40,19 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
     if status != 200:
         ui.notify(f'获取课程信息失败, {result}')
         return
+    status, report_result = get_course_report_by_course_id(global_vars.class_room.id, course_id)
+    if status != 200:
+        if isinstance(report_result, str):
+            ui.notify(f'获取课程报告失败, {report_result}')
+        return
+    if not isinstance(report_result, CourseReportDao):
+        ui.notify('获取课程报告失败, 数据格式错误')
+        return
+    report_dao: CourseReportDao = report_result
+    trade_time = [datetime.strptime(item.create_time, '%Y-%m-%d %H:%M:%S').strftime('%H:%M') for item in report_dao.concentration_trade]
+    deep_concentration = [item.deep_concentration_num for item in report_dao.concentration_trade]
+    mid_concentration = [item.mid_concentration_num for item in report_dao.concentration_trade]
+    low_concentration = [item.low_concentration_num for item in report_dao.concentration_trade]
     with ui.column().classes('w-full gap-0 mt-0 p-[15px] items-center place-content-start') \
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         with ui.row().classes('w-full gap-0 items-center place-content-between'):
@@ -31,9 +63,19 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                 ui.button('打印', icon='img:/static/images/printer@2x.png', on_click=print_course_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #27CACA !important; border-radius: 6px;')
-                ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_course_report) \
+                global download_button
+                download_button = ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_course_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #65B6FF !important; border-radius: 6px;')
+                global download_progress_row
+                global download_progress
+                with ui.row().classes('w-[35px]') \
+                    .style('background-color: #FFFFFF !important; border-radius: 50% !important;') as download_progress_row:
+                    download_progress = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=False) \
+                        .classes('w-[30px] h-[30px]') \
+                        .style('color: #65B6FF !important; background-color: #FFFFFF !important; border-radius: 50% !important;')
+                    download_progress.bind_value_from(progress_value)
+                download_progress_row.visible = False
         with ui.row().classes('w-full mt-2 items-center place-content-start'):
             ui.icon('img:/static/images/group_student@2x.png').classes('w-[40px] h-[40px]')
             ui.label('一(4)班').classes('ml-2 text-[#333333] text-[14px]') \
@@ -94,7 +136,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                     'xAxis': {
                         'type': 'category',
                         'boundaryGap': 0,
-                        'data': ['8:00', '8:10', '8:20', '8:30', '8:40', '8:50', '9:00', '9:10', '9:20', '9:30']
+                        'data': trade_time,
                     },
                     'yAxis': {
                         'type': 'value'
@@ -109,7 +151,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': [5, 8, 13, 21, 34, 55]
+                            'data': deep_concentration
                         },
                         {
                             'name':'中度专注',
@@ -120,7 +162,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': [3, 10, 12, 19, 23, 30]
+                            'data': mid_concentration
                         },
                         {
                             'name':'浅度专注',
@@ -131,7 +173,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': [8, 9, 18, 25, 27, 45]
+                            'data': low_concentration
                         },
                     ]
                 }).classes('w-full h-full')
@@ -157,10 +199,10 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                                 'radius': ['30%', '60%'],
                                 'color':['#FFA137','#F4635E','#4D82FB','#65B6FF'],
                                 'data': [
-                                    {'value': 8, 'name': '小于10分钟'},
-                                    {'value': 10, 'name': '10-20分钟'},
-                                    {'value': 15, 'name': '20-30分钟'},
-                                    {'value': 12, 'name': '大于30分钟'},
+                                    {'value': report_dao.deep_concentration_distribution.less_than_10_min_num, 'name': '小于10分钟'},
+                                    {'value': report_dao.deep_concentration_distribution.less_than_20_min_num, 'name': '10-20分钟'},
+                                    {'value': report_dao.deep_concentration_distribution.less_than_30_min_num, 'name': '20-30分钟'},
+                                    {'value': report_dao.deep_concentration_distribution.greater_than_30_min_num, 'name': '大于30分钟'},
                                 ],
                                 'emphasis': {
                                     'itemStyle': {
@@ -191,10 +233,10 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                                 'type': 'pie',
                                 'radius': ['30%', '60%'],
                                 'data': [
-                                    {'value': 8, 'name': '小于10分钟', 'itemStyle': {'color': '#674CF5'}},
-                                    {'value': 10, 'name': '10-20分钟', 'itemStyle': {'color': '#29B479'}},
-                                    {'value': 15, 'name': '20-30分钟', 'itemStyle': {'color': '#FBB80F'}},
-                                    {'value': 12, 'name': '大于30分钟', 'itemStyle': {'color': '#F96B3E'}},
+                                    {'value': report_dao.mid_concentration_distribution.less_than_10_min_num, 'name': '小于10分钟', 'itemStyle': {'color': '#674CF5'}},
+                                    {'value': report_dao.mid_concentration_distribution.less_than_20_min_num, 'name': '10-20分钟', 'itemStyle': {'color': '#29B479'}},
+                                    {'value': report_dao.mid_concentration_distribution.less_than_30_min_num, 'name': '20-30分钟', 'itemStyle': {'color': '#FBB80F'}},
+                                    {'value': report_dao.mid_concentration_distribution.greater_than_30_min_num, 'name': '大于30分钟', 'itemStyle': {'color': '#F96B3E'}},
                                 ],
                                 'emphasis': {
                                     'itemStyle': {
@@ -206,20 +248,112 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                             },
                         ]
                     }).classes('w-full h-full')
+    # 查询专注度
+    status, concentration_list = query_course_student_concentration(course_id)
+    if status != 200:
+        if isinstance(concentration_list, str):
+            ui.notify(f'获取课程专注度失败, {concentration_list}')
+        return
     with ui.column().classes('w-full mt-2 gap-0 p-[15px] items-center place-content-start') \
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         ui.label('学习专注度排名').classes('w-full font-bold text-[16px] text-[#333333]')
-        table_rows = [
-            {'course_id': course_id, 'id': 1, 'sn': 1, 'name': '陈佳佳', 'gender': '0', 'deep_concentration': '40%', 'mid_concentration': '35%', 'low_concentration': '25%', 'operation': ''},
-            {'course_id': course_id, 'id': 2, 'sn': 2, 'name': '王思思', 'gender': '0', 'deep_concentration': '39%', 'mid_concentration': '32%', 'low_concentration': '28%', 'operation': ''},
-            {'course_id': course_id, 'id': 3, 'sn': 3, 'name': '李明明', 'gender': '1', 'deep_concentration': '35%', 'mid_concentration': '38%', 'low_concentration': '27%', 'operation': ''},
-            {'course_id': course_id, 'id': 4, 'sn': 4, 'name': '张雨晨', 'gender': '0', 'deep_concentration': '33%', 'mid_concentration': '37%', 'low_concentration': '30%', 'operation': ''},
-            {'course_id': course_id, 'id': 5, 'sn': 5, 'name': '刘子豪', 'gender': '1', 'deep_concentration': '32%', 'mid_concentration': '39%', 'low_concentration': '32%', 'operation': ''},
-        ]
+        sn = 1
+        table_rows = []
+        for item in concentration_list:
+            if isinstance(item, CourseStudentsConcentrationDao):
+                low :float = 0.0
+                mid :float = 0.0
+                deep :float = 0.0
+                if item.total_concentration > 0:
+                    low = round(item.low_concentration / item.total_concentration * 100, 2)
+                    mid = round(item.mid_concentration / item.total_concentration * 100, 2)
+                    deep = round(item.deep_concentration / item.total_concentration * 100, 2)
+                table_rows.append({
+                    'course_id': course_id,
+                    'id': item.student_id,
+                    'sn': sn,
+                    'name': item.name,
+                    'gender': item.gender,
+                    'deep_concentration': f'{deep}%',
+                    'mid_concentration': f'{mid}%',
+                    'low_concentration': f'{low}%',
+                    'operation': ''
+                })
+            sn += 1
         tables.show_report_table(table_rows, show_person_report)
 
+#
+# @description: 打印课程报告
+# @param {*}
+# @return {*}
+#
 def print_course_report():
     ui.notify('print course report')
 
+@ui.page('/course_report/{course_id}')
+def report_page(course_id: int):
+    show_course_report_page(course_id, None)
+
+download_queue = Queue[int]()
+
 def download_course_report():
-    ui.notify('download course report')
+    if download_progress_row is not None:
+        download_progress_row.visible = True
+    if download_button is not None:
+        download_button.visible = False
+    def check_download_queue():
+        if not download_queue.empty():
+            value = download_queue.get()
+            if isinstance(value, int):
+                if value == 10:
+                    progress_value.set_value(1.0)
+                    if download_progress_row is not None:
+                        download_progress_row.visible = False
+                    if download_button is not None:
+                        download_button.visible = True
+                    if download_timer is not None:
+                        download_timer.cancel()
+                    ui.notify('课程报告下载完成')
+                else:
+                    v = value / 10
+                    progress_value.set_value(v)
+                
+            else:
+                ui.notify('课程报告下载失败')
+                if download_progress_row is not None:
+                    download_progress_row.visible = False
+                if download_button is not None:
+                    download_button.visible = True
+                if download_timer is not None:
+                    download_timer.cancel()
+    global download_timer
+    if download_timer is not None:
+        download_timer.cancel()
+    download_timer = ui.timer(1, callback=check_download_queue, immediate=True)
+    download_timer.activate()
+    thr = thread.Thread(target=generate_course_report_png, args=(course_dao.id,))
+    thr.start()
+
+def generate_course_report_png(course_id: int):
+    options = Options()
+    options.add_argument('--headless')  # 可选：无头模式
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    while True:
+        try:
+            download_queue.put(1)
+            browser = webdriver.Chrome(options=options)
+            download_queue.put(3)
+            url = f"http://localhost:8083/course_report/{course_id}"
+            browser.get(url)
+            download_queue.put(4)
+            browser.implicitly_wait(10)
+            outfile= f'./course_report_{course_id}.png'
+            browser.set_window_size(1920, 1080)  # 设置窗口大小
+            browser.save_screenshot(outfile)
+            browser.quit()
+            download_queue.put(2)
+            download_queue.put(10)
+            break
+        except Exception as e:
+            time.sleep(0.1)
