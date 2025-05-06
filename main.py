@@ -84,6 +84,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if not app.storage.user.get('authenticated', False):
             if not request.url.path.startswith('/_nicegui') \
+                and not request.url.path.startswith('/login') \
                 and not request.url.path.startswith('/static') \
                 and not request.url.path.startswith('/course_report'):
                 app.storage.user['referrer_path'] = request.url.path
