@@ -264,7 +264,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                 low :float = 0.0
                 mid :float = 0.0
                 deep :float = 0.0
-                if item.total_concentration > 0:
+                if item.total_concentration is not None and item.total_concentration > 0:
                     low = round(item.low_concentration / item.total_concentration * 100, 2)
                     mid = round(item.mid_concentration / item.total_concentration * 100, 2)
                     deep = round(item.deep_concentration / item.total_concentration * 100, 2)

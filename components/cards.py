@@ -1,6 +1,6 @@
 import copy
 from typing import Callable
-from nicegui import ui
+from nicegui import ui,app
 from queue import Queue
 
 def seat_card(seat):
@@ -68,8 +68,6 @@ class StudentCard:
         self.concentration_old_value = 1
     
 
-student_in_card_dict: dict[str, StudentCard] = {}
-
 # @description: 定义学生学习状态对象，用来保存外部MQ传入专注度和在线状态以及回调函数
 class StudyStatus:
     update_flag: int # 1: 更新在线状态 2: 更新专注度
@@ -83,43 +81,41 @@ class StudyStatus:
         self.is_online = 0
         self.mac = ""
     def change_concentration(self):
-        if self.mac in student_in_card_dict:
-            student_card = student_in_card_dict[self.mac]
-            if student_card.concentration_row is None:
-                return
+        student_card = app.storage.tab[self.mac]
+        if student_card is None or student_card.concentration_row is None:
+            return
+        concentration_up = 0
+        if self.concentration_value > student_card.concentration_old_value:
+            concentration_up = 1
+        elif self.concentration_value < student_card.concentration_old_value:
+            concentration_up = -1
+        else:
             concentration_up = 0
-            if self.concentration_value > student_card.concentration_old_value:
-                concentration_up = 1
-            elif self.concentration_value < student_card.concentration_old_value:
-                concentration_up = -1
-            else:
-                concentration_up = 0
-            student_card.concentration_old_value = self.concentration_value
-            if self.concentration_value == 1: # 低专注
-                with student_card.concentration_row:
-                    student_card.concentration_row.clear()
-                    ui.icon('circle').classes('text-[#EF4444] w-4 h-4')
-            elif self.concentration_value == 2: # 中专注
-                with student_card.concentration_row:
-                    student_card.concentration_row.clear()
-                    ui.icon('circle').classes('text-[#FFC100] w-4 h-4')
-            elif self.concentration_value == 3: # 高专注
-                with student_card.concentration_row:
-                    student_card.concentration_row.clear()
-                    ui.icon('circle').classes('text-[#27CACA] w-4 h-4')
-            if self.concentration_callback is not None:
-                self.concentration_callback(student_card.student_name, self.concentration_value, concentration_up)
+        student_card.concentration_old_value = self.concentration_value
+        if self.concentration_value == 1: # 低专注
+            with student_card.concentration_row:
+                student_card.concentration_row.clear()
+                ui.icon('circle').classes('text-[#EF4444] w-4 h-4')
+        elif self.concentration_value == 2: # 中专注
+            with student_card.concentration_row:
+                student_card.concentration_row.clear()
+                ui.icon('circle').classes('text-[#FFC100] w-4 h-4')
+        elif self.concentration_value == 3: # 高专注
+            with student_card.concentration_row:
+                student_card.concentration_row.clear()
+                ui.icon('circle').classes('text-[#27CACA] w-4 h-4')
+        if self.concentration_callback is not None:
+            self.concentration_callback(student_card.student_name, self.concentration_value, concentration_up)
     def change_online(self):
-        if self.mac in student_in_card_dict:
-            student_card = student_in_card_dict[self.mac]
-            if student_card.online_row is None:
-                return
-            with student_card.online_row:
-                student_card.online_row.clear()
-                if self.is_online == 0:
-                    ui.icon('img:/static/images/off_line.png').classes('self-center')
-                elif self.is_online == 1:
-                    ui.icon('img:/static/images/on_line.png').classes('self-center')
+        student_card = app.storage.tab[self.mac]
+        if student_card is None or student_card.online_row is None:
+            return
+        with student_card.online_row:
+            student_card.online_row.clear()
+            if self.is_online == 0:
+                ui.icon('img:/static/images/off_line.png').classes('self-center')
+            elif self.is_online == 1:
+                ui.icon('img:/static/images/on_line.png').classes('self-center')
 
 student_status_queue: Queue[StudyStatus] = Queue()
 
@@ -137,6 +133,7 @@ def student_in_seat_card(student) -> None:
                 ui.label(student['seat_number']).classes('text-[14px] text-[#888888] self-center font-bold')
                 with ui.row().classes('gap-0 place-content-end') as concentration_row:
                     student_card.concentration_row = concentration_row
+                    concentration_row.bind_visibility_to(student_card.concentration_row)
                     ui.icon('circle').classes('text-gray-300 w-4 h-4')
             with ui.row().classes('w-full gap-0 place-content-center'):
                 if student['name'] is not None:
@@ -145,14 +142,14 @@ def student_in_seat_card(student) -> None:
                     ui.label('未添加').classes('text-[14px] text-[#FF4D4D] self-center')
             with ui.row().classes('w-full gap-0 place-content-end') as online_row:
                 student_card.online_row = online_row
+                online_row.bind_visibility_to(student_card.online_row)
                 if student['status'] == 0:
                     ui.icon('img:/static/images/off_line.png').classes('self-center')
                 elif student['status'] == 1:
                     ui.icon('img:/static/images/on_line.png').classes('self-center')
     mac = student['mac']
     student_card.student_name = student['name']
-    if mac not in student_in_card_dict and mac is not None and mac != "":
-        student_in_card_dict[mac] = student_card
+    app.storage.tab[mac] = student_card
 
 # @description: 更新学生卡片的专注度
 # @param {str} mac 学生的mac地址
