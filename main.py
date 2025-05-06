@@ -109,4 +109,4 @@ if __name__ in {"__main__", "__mp_main__"}:
         exit(1)
     global_vars.mq.loop_for_thread()
     api_manager.api_https = ulib.PoolManager(timeout=30.0)
-    ui.run(title=strings.APP_NAME, port=8083, storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')
+    ui.run(title=strings.APP_NAME, port=8083, language='zh-CN', storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')
