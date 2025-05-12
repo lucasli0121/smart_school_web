@@ -11,6 +11,7 @@ from dao.classroom_dao import \
     ClassRoomSeatsDao, \
     get_class_room_seats_by_classes_id
 from dao.h03_event_dao import H03EventDao
+from dao.t1_attr_dao import T1AttrDao
 from utils import global_vars
 
 def show_course_detail_page(course_id: int) -> None:
@@ -159,6 +160,13 @@ def students_seat_subscribe(mac: str) -> None:
         cards.update_online_student_in_card(mac, 1)
         cards.update_concentration_student_in_card(event_dao.mac, event_dao.focus_status, update_study_status_column)
     global_vars.subscribe_event_topic(mac, event_msg)
+    def attr_msg(client, userdata, msg):
+        jsobj = json.loads(msg.payload)
+        attr_dao = T1AttrDao()
+        attr_dao.from_json(jsobj)
+        cards.update_online_student_in_card(mac, 1)
+        cards.update_concentration_student_in_card(attr_dao.mac, attr_dao.focus_status, update_study_status_column)
+    global_vars.subscribe_attr_topic(mac, attr_msg)
 #
 # @description: 批量导入学生
 # @param {*}

@@ -23,5 +23,9 @@ def unsubscribe_online_topic(mac: str) -> bool:
     return mq_impl.unsubscribe(f'hjy-dev/device/heart_beat/{mac.lower()}')
 def subscribe_event_topic(mac: str, handle_event_func) -> bool:
     return mq_impl.subscribe(f'server-h03/study/event/{mac.lower()}', handle_event_func)
+def subscribe_attr_topic(mac: str, handle_attr_func) -> bool:
+    return mq_impl.subscribe(f'server-t1/study/attr/{mac.lower()}', handle_attr_func)
 def unsubscribe_event_topic(mac: str):
     mq_impl.unsubscribe(f'server-h03/study/event/{mac.lower()}')
+def unsubscribe_attr_topic(mac: str):
+    mq_impl.unsubscribe(f'server-t1/study/attr/{mac.lower()}')

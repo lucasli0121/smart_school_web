@@ -144,6 +144,16 @@ def show_report_table(datas, show_person_report) -> ui.table:
                 </template>
             </q-td>
         ''')
+        table.add_slot('body-cell-gender', r'''
+            <q-td auto-width key="gender" :props="props">  
+                <template v-if="props.row.gender == 0">
+                    男
+                </template>
+                <template v-if="props.row.gender == 1">
+                    女
+                </template>
+            </q-td>
+        ''')
         table.add_slot('body-cell-operation', r'''
             <q-td auto-width key="operation" :props="props">
                 <q-btn size="sm" flat round dense icon="img:/static/images/visible@2x.png"
