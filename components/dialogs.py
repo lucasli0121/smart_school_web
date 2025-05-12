@@ -346,7 +346,7 @@ def show_install_device_dialog(onok) -> ui.dialog:
                 ui.label('已添加').classes('text-[#666666] text-[12px] font-weight-400 ')
                 ui.icon('square').classes('text-[#65B6FF] w-4 h-4 ml-3')
                 ui.label('可添加').classes('text-[#666666] text-[12px] font-weight-400 ')
-            status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+            status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
             if status != 200:
                 ui.notify(f'查询教室座位失败: {seats_list}')
             else:
@@ -357,10 +357,10 @@ def show_install_device_dialog(onok) -> ui.dialog:
                         select_seat_no = value
                         seats_column.clear()
                         with seats_column:
-                            for i in range(0, global_vars.class_room.seat_row):
+                            for i in range(0, global_vars.get_class_room().seat_row):
                                 with ui.row().classes('w-full items-center place-content-around gap-0'):
-                                    for j in range(0, global_vars.class_room.seat_col):
-                                        seat_item = seats_list[i * global_vars.class_room.seat_col + j]
+                                    for j in range(0, global_vars.get_class_room().seat_col):
+                                        seat_item = seats_list[i * global_vars.get_class_room().seat_col + j]
                                         if isinstance(seat_item, ClassRoomSeatsDao):
                                             seats_dao: ClassRoomSeatsDao = seat_item
                                             cards.seat_card_only_number( \
@@ -411,7 +411,7 @@ def show_add_student_dialog(course_id:int, onok) -> ui.dialog:
                 ui.label('已添加').classes('text-[#666666] text-[12px] font-weight-400 ')
                 ui.icon('square').classes('text-[#65B6FF] w-4 h-4 ml-3')
                 ui.label('可添加').classes('text-[#666666] text-[12px] font-weight-400 ')
-            status, result = query_student_in_seat(global_vars.class_room.id, course_id)
+            status, result = query_student_in_seat(global_vars.get_class_room().id, course_id)
             if status != 200:
                 ui.notify(f'查询学生座位失败: {result}')
             else:
@@ -422,10 +422,10 @@ def show_add_student_dialog(course_id:int, onok) -> ui.dialog:
                         select_seat_no = value
                         seats_column.clear()
                         with seats_column:
-                            for i in range(0, global_vars.class_room.seat_row):
+                            for i in range(0, global_vars.get_class_room().seat_row):
                                 with ui.row().classes('w-full items-center place-content-around gap-0'):
-                                    for j in range(0, global_vars.class_room.seat_col):
-                                        seat_item = result[i * global_vars.class_room.seat_col + j]
+                                    for j in range(0, global_vars.get_class_room().seat_col):
+                                        seat_item = result[i * global_vars.get_class_room().seat_col + j]
                                         if isinstance(seat_item, StudentInSeatsDao):
                                             seats_dao: StudentInSeatsDao = seat_item
                                             is_installed = seats_dao.name != None and seats_dao.name != ""

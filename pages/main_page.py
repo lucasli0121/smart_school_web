@@ -9,11 +9,12 @@ from fastapi.staticfiles import StaticFiles
 from nicegui import ui,app
 from resources import strings
 from menu.top_menu import top_menu
-from navigation import navigation_switcher, HOME_NAVIGATION, COURSE_NAVIGATION, DEVICE_NAVIGATION
+import navigation
 from pages.course_page import show_course_page
 from pages.device_page import show_device_page
-from utils import global_vars
-
+from pages.course_report_page import show_course_report_page
+from pages.person_report_page import show_person_report_page
+from pages.course_detail_page import show_course_detail_page
 
 @ui.page('/')
 def main_page() -> None:
@@ -69,14 +70,45 @@ def main_page() -> None:
         }
         
     ''')
-    
+    if 'navigation' not in app.storage.user:
+        app.storage.user['navigation'] = navigation.HOME_NAVIGATION
     with ui.header().classes('item-center place-content-between').style('background-color: white'):
-        global_vars.header_title = ui.row().classes('h-full items-center place-content-start gap-0')
+        header_row = ui.row().classes('h-full items-center place-content-start gap-0')
         ui.space()
         with ui.row():
             top_menu()
-    global_vars.tab_panels = show_tabs()
-    global_vars.show_main_page_title()
+    tab_panels = show_tabs()
+    if app.storage.user['navigation'] == navigation.HOME_NAVIGATION:
+        with header_row:
+            header_row.clear()
+            title = ui.label(navigation.navigation_switcher.get(navigation.HOME_NAVIGATION, '')).classes('place-self-center').style('font-size: 24px; color:#65B6FF')
+            title.bind_text_from(tab_panels, 'value', lambda value: value.props["label"] if not isinstance(value, str) else value)
+    elif app.storage.user['navigation'] == navigation.COURSE_REPORT_NAVIGATION:
+        with header_row:
+            header_row.clear()
+            ui.icon('img:/static/images/back@2x.png') \
+                .classes('w-[24px] h-[24px]') \
+                .on('click', app.storage.user['onback'])
+            ui.label('课程管理 / ').classes('ml-2 text-[20px] text-[#333333]')
+            ui.label('学习专注度报告').classes('text-[20px] text-[#65B6FF]')
+    elif app.storage.user['navigation'] == navigation.COURSE_DETAIL_NAVIGATION:
+        with header_row:
+            header_row.clear()
+            onback = app.storage.user['onback']
+            ui.icon('img:/static/images/back@2x.png') \
+                .classes('w-[24px] h-[24px]') \
+                .on('click', onback)
+            ui.label('课程管理 / ').classes('ml-2 text-[20px] text-[#333333]')
+            ui.label('课程详情').classes('text-[20px] text-[#65B6FF]')
+    elif app.storage.user['navigation'] == navigation.COURSE_PERSON_REPORT_NAVIGATION:
+        with header_row:
+            header_row.clear()
+            onback = app.storage.user['onback']
+            ui.icon('img:/static/images/back@2x.png') \
+                .classes('w-[24px] h-[24px]') \
+                .on('click', onback)
+            ui.label('课程管理 / 学习专注度报告 / ').classes('ml-2 text-[20px] text-[#333333]')
+            ui.label('个人报告').classes('text-[20px] text-[#65B6FF]')
 
 def show_tabs() -> ui.tab_panels:
     with ui.left_drawer(top_corner=True).props('width=260'):
@@ -89,8 +121,20 @@ def show_tabs() -> ui.tab_panels:
         .props('vertical') \
         .classes('w-full h-full q-pa-none') \
         .style('margin: 0 !important; padding: 0 !important;') as tab_panels:
-        global_vars.course_container = ui.tab_panel(course).classes('gap-0').style('margin: 0 !important; padding: 0 !important; background-color: #F4F9FD !important;')
-        show_course_page()
+        with ui.tab_panel(course).classes('gap-0').style('margin: 0 !important; padding: 0 !important; background-color: #F4F9FD !important;'):
+            if 'course_container' not in app.storage.user:
+                app.storage.user['course_container'] = navigation.COURSE_NAVIGATION
+
+            if app.storage.user['course_container'] == navigation.COURSE_NAVIGATION:
+                show_course_page()
+            elif app.storage.user['course_container'] == navigation.COURSE_REPORT_NAVIGATION:
+                person_report_func = app.storage.user['person_report']
+                show_course_report_page(app.storage.user['course_id'], person_report_func)
+            elif app.storage.user['course_container'] == navigation.COURSE_PERSON_REPORT_NAVIGATION:
+                show_person_report_page(app.storage.user['course_id'], app.storage.user['user_id'])
+            elif app.storage.user['course_container'] == navigation.COURSE_DETAIL_NAVIGATION:
+                course_id = app.storage.user['course_id']
+                show_course_detail_page(course_id)
         with ui.tab_panel(devices).classes('gap-0').style('margin: 0 !important; padding: 0 !important; background-color: #F4F9FD !important;') as device_panel:
             show_device_page(device_panel)
     return tab_panels

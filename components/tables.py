@@ -103,6 +103,10 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
         table.on('show_report', show_report)
     return table
 
+#
+# @description: 显示班级报表中的表格
+# @param {list} datas 数据列表
+#
 def show_report_table(datas, show_person_report) -> ui.table:
     table_columns = [
         {'name': 'sn', 'label': '排名', 'field': 'sn', 'width': '10%', 'align': 'center'},

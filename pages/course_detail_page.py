@@ -2,7 +2,7 @@
 from datetime import datetime
 import json
 from typing import Optional
-from nicegui import ui
+from nicegui import ui, app
 import pandas as pd
 import pytz
 from components import dialogs, tables, cards
@@ -12,17 +12,12 @@ from dao.classroom_dao import \
     get_class_room_seats_by_classes_id
 from dao.h03_event_dao import H03EventDao
 from utils import global_vars
-course_dao = CourseDao()
-student_card_column: Optional[ui.column] = None
-start_course_button: Optional[ui.button] = None
-end_course_button: Optional[ui.button] = None
-study_status_column: Optional[ui.column] = None
-check_event_timer: Optional[ui.timer] = None
 
 def show_course_detail_page(course_id: int) -> None:
-    global course_dao
-    course_dao.id = course_id
-    status, result = course_dao.get_course_by_id()
+    if 'course_dao' not in app.storage.user:
+        app.storage.user['course_dao'] = CourseDao()
+    app.storage.user['course_dao'].id = course_id
+    status, result = app.storage.user['course_dao'].get_course_by_id()
     if status != 200:
         ui.notify(f'获取课程信息失败, {result}')
         return
@@ -30,11 +25,11 @@ def show_course_detail_page(course_id: int) -> None:
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         with ui.row().classes('h-full items-center gap-0'):
             ui.label('XX中学智能学习教室').classes('text-[20px] text-[#333333]') \
-                .bind_text_from(global_vars.class_room, 'name')
+                .bind_text_from(global_vars.get_class_room(), 'name')
             ui.label('三(2)班').classes('text-[20px] ml-2 text-[#333333]') \
-                .bind_text_from(course_dao, 'classes')
+                .bind_text_from(app.storage.user['course_dao'], 'classes')
             ui.label('代课老师: 王老师').classes('ml-10 text-[20px] text-[#888888]') \
-                .bind_text_from(course_dao, 'teacher')
+                .bind_text_from(app.storage.user['course_dao'], 'teacher')
         with ui.row().classes('h-full items-center'):
             ui.button('批量导入', icon='img:/static/images/import@2x.png', on_click=import_students) \
                 .classes('w-25 rounded-md text-white') \
@@ -46,8 +41,7 @@ def show_course_detail_page(course_id: int) -> None:
     with ui.card().classes('w-full mt-2 no-shadow') \
         .props('borderless') \
         .style('padding: 15px; background-color: #FFFFFF !important; border-radius: 10px;'):
-        global student_card_column
-        student_card_column = ui.column().classes('w-full items-center place-content-start')
+        app.storage.client['student_card_column'] = ui.column().classes('w-full items-center place-content-start')
         refresh_student_seat_card()
         with ui.row().classes('w-full gap-0 mt-5 item-center place-content-start'):
             ui.icon('square').classes('text-[#27CACA] w-4 h-4').style('border-radius: 2px;')
@@ -66,32 +60,30 @@ def show_course_detail_page(course_id: int) -> None:
                 with ui.row().classes('w-full place-content-start'):
                     ui.label('学习状况:').classes('text-[16px] text-[#333333]')
                 with ui.scroll_area().classes('w-full h-[200px] gap-0'):
-                    global study_status_column
                     with ui.column().classes('w-full place-content-start gap-0') as study_status_column:
+                        app.storage.client['study_status_column'] = study_status_column
                         with ui.row().classes('w-full'):
                             ui.label('10:46:05').classes('text-[14px] text-[#333333]')
                             ui.label('刘婷婷同学专注度下降到中度专注').classes('text-[14px] text-[#333333]')
                     study_status_column.clear()
         with ui.row().classes('w-full mt-2 items-center place-content-end'):
-            global start_course_button
-            global end_course_button
-            start_course_button = ui.button('开始上课', color=None, on_click=start_course) \
+            app.storage.client['start_course_button'] = ui.button('开始上课', color=None, on_click=start_course) \
                 .props('flat') \
                 .classes('w-[120px] text-[16px] text-white font-[400]') \
                 .style('background-color: #65B6FF !important; border-radius: 10px')
-            end_course_button = ui.button('结束上课', color=None, on_click=end_course) \
+            app.storage.client['end_course_button'] = ui.button('结束上课', color=None, on_click=end_course) \
                 .props('flat') \
                 .classes('w-[120px] text-[16px] text-[#FF4D4D] font-[400]') \
                 .style('background-color: rgba(255,77,77,0.39) !important; border-radius: 10px')
-            if course_dao.status == 1:
-                start_course_button.set_visibility(False)
-                end_course_button.set_visibility(True)
-            elif course_dao.status == 2:
-                start_course_button.set_visibility(False)
-                end_course_button.set_visibility(False)
+            if app.storage.user['course_dao'].status == 1:
+                app.storage.client['start_course_button'].set_visibility(False)
+                app.storage.client['end_course_button'].set_visibility(True)
+            elif app.storage.user['course_dao'].status == 2:
+                app.storage.client['start_course_button'].set_visibility(False)
+                app.storage.client['end_course_button'].set_visibility(False)
             else:
-                start_course_button.set_visibility(True)
-                end_course_button.set_visibility(False)
+                app.storage.client['start_course_button'].set_visibility(True)
+                app.storage.client['end_course_button'].set_visibility(False)
             
 
 #
@@ -100,31 +92,29 @@ def show_course_detail_page(course_id: int) -> None:
 # @return {*}
 #
 def refresh_student_seat_card():
-    if student_card_column is not None:
-        status, result = query_student_in_seat(global_vars.class_room.id, course_dao.id)
+    if 'student_card_column' in app.storage.client:
+        status, result = query_student_in_seat(global_vars.get_class_room().id, app.storage.user['course_dao'].id)
         if status != 200:
             ui.notify(f'查询学生座位失败: {result}')
             return
-        
-        student_card_column.clear()
-        with student_card_column:
-            for i in range(0, global_vars.class_room.seat_row):
+        app.storage.client['student_card_column'].clear()
+        with app.storage.client['student_card_column']:
+            for i in range(0, global_vars.get_class_room().seat_row):
                 with ui.row().classes('w-full items-center place-content-evenly'):
                     row_label = chr(65 + i)  # Convert row index to letter (A, B, C, ...)
                     ui.label(f'{row_label}排').classes('text-[14px] font-bold text-[#333333]')
-                    for j in range(0, global_vars.class_room.seat_col):
-                        item = result[i * global_vars.class_room.seat_col + j]
+                    for j in range(0, global_vars.get_class_room().seat_col):
+                        item = result[i * global_vars.get_class_room().seat_col + j]
                         if isinstance(item, StudentInSeatsDao):
                             obj: StudentInSeatsDao = item
                             if obj.mac is not None and obj.mac != "":
                                 students_seat_subscribe(mac=obj.mac)
                             students = {'seat_number': obj.seat_no, 'mac': obj.mac, 'name': obj.name, 'status': obj.is_online}
                             cards.student_in_seat_card(students)
-        global check_event_timer
-        if check_event_timer is not None:
-            check_event_timer.cancel()
-        check_event_timer = ui.timer(1, cards.check_student_status_queue)
-        check_event_timer.activate()
+        if 'check_event_timer' in app.storage.client:
+            app.storage.client['check_event_timer'].cancel()
+        app.storage.client['check_event_timer'] = ui.timer(1, cards.check_student_status_queue)
+        app.storage.client['check_event_timer'].activate()
 
 #
 # @description: 更新学生学习状态列表
@@ -135,8 +125,8 @@ def refresh_student_seat_card():
 def update_study_status_column(name: str, concentration: int, up: int) -> None:
     if name is None or name == "" or concentration is None or concentration == 0:
         return
-    if study_status_column is not None:
-        with study_status_column:
+    if 'study_status_column' in app.storage.client:
+        with app.storage.client['study_status_column']:
             with ui.row().classes('w-full'):
                 if up == 1:
                     upstr = '上升至'
@@ -174,7 +164,7 @@ def students_seat_subscribe(mac: str) -> None:
 # @param {*}
 # @return {*}
 def import_students():
-    status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+    status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
     if status != 200:
         ui.notify(f'查询教室座位失败: {seats_list}')
         return
@@ -192,9 +182,9 @@ def import_students():
             name = row['name']
             gender = row['gender']
             students_dao = CourseStudentsDao( \
-                class_room_id=global_vars.class_room.id, \
+                class_room_id=global_vars.get_class_room().id, \
                 seat_id=seat_dict.get(seat_no, 0), \
-                course_id=course_dao.id, \
+                course_id=app.storage.user['course_dao'].id, \
                 name = name, \
                 gender=0 if gender == '男' else 1, \
             )
@@ -227,7 +217,7 @@ def import_students():
 # 
 def add_students():
     def on_ok(seat_no, name, gender):
-        status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+        status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
         if status != 200:
             ui.notify(f'查询教室座位失败: {seats_list}')
             return
@@ -235,9 +225,9 @@ def add_students():
         if isinstance(seats_list, list) and all(isinstance(item, ClassRoomSeatsDao) for item in seats_list):
             seat_dict = {item.seat_no: item.id for item in seats_list}
         students_dao = CourseStudentsDao( \
-            class_room_id=global_vars.class_room.id, \
+            class_room_id=global_vars.get_class_room().id, \
             seat_id=seat_dict.get(seat_no, 0), \
-            course_id=course_dao.id, \
+            course_id=app.storage.user['course_dao'].id, \
             name = name, \
             gender=0 if gender == '男' else 1, \
         )
@@ -249,7 +239,7 @@ def add_students():
             ui.notify('添加学生成功')
             refresh_student_seat_card()
             add_dialog.close()
-    add_dialog = dialogs.show_add_student_dialog(course_dao.id, on_ok)
+    add_dialog = dialogs.show_add_student_dialog(app.storage.user['course_dao'].id, on_ok)
 
 #
 # @description: 开始上课
@@ -257,17 +247,17 @@ def add_students():
 # @return {*}
 #
 def start_course():
-    if course_dao.status > 0:
+    if app.storage.user['course_dao'].status > 0:
         ui.notify('只有未开始的课程才能开始上课')
         return
-    course_dao.begin_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    course_dao.status = 1
-    status, result = course_dao.update_course()
+    app.storage.user['course_dao'].begin_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+    app.storage.user['course_dao'].status = 1
+    status, result = app.storage.user['course_dao'].update_course()
     if status:
-        if start_course_button is not None:
-            start_course_button.set_visibility(False)
-        if end_course_button is not None:
-            end_course_button.set_visibility(True)
+        if 'start_course_button' in app.storage.client:
+            app.storage.client['start_course_button'].set_visibility(False)
+        if 'end_course_button' in app.storage.client:
+            app.storage.client['end_course_button'].set_visibility(True)
     else:
         ui.notify(f'开始课程失败: {result}')
 #
@@ -276,19 +266,19 @@ def start_course():
 # @return {*}
 #
 def end_course():
-    if course_dao.status != 1:
+    if app.storage.user['course_dao'].status != 1:
         ui.notify('只有进行中的课程才能结束上课')
         return
-    if course_dao.status == 2:
+    if app.storage.user['course_dao'].status == 2:
         ui.notify('课程已经结束')
         return
-    course_dao.end_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    course_dao.status = 2
-    if course_dao.begin_time is not None and course_dao.end_time is not None:
-        start = datetime.strptime(course_dao.begin_time, '%Y-%m-%d %H:%M:%S')
-        end = datetime.strptime(course_dao.end_time, '%Y-%m-%d %H:%M:%S')
-        course_dao.duration = (end - start).total_seconds() / 60
-    status, result = course_dao.update_course()
+    app.storage.user['course_dao'].end_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+    app.storage.user['course_dao'].status = 2
+    if app.storage.user['course_dao'].begin_time is not None and app.storage.user['course_dao'].end_time is not None:
+        start = datetime.strptime(app.storage.user['course_dao'].begin_time, '%Y-%m-%d %H:%M:%S')
+        end = datetime.strptime(app.storage.user['course_dao'].end_time, '%Y-%m-%d %H:%M:%S')
+        app.storage.user['course_dao'].duration = (end - start).total_seconds() / 60
+    status, result = app.storage.user['course_dao'].update_course()
     if status:
         ui.notify('结束课程成功，请返回课程列表')
     else:

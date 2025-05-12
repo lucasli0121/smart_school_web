@@ -5,15 +5,11 @@ LastEditors: liguoqiang
 LastEditTime: 2025-03-19 14:57:09
 Description: 
 '''
-import asyncio
 import os
-import threading
-from time import sleep
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from nicegui import ui,app
-from components import cards
 from dao.classroom_dao import ClassRoomSeatsDao, get_class_room_seats_by_classes_id
 from resources import strings
 import urllib3 as ulib
@@ -21,8 +17,8 @@ import logging
 import logging.config
 import yaml
 from utils import global_vars
-from pages import login_page, main_page
 from api import api_manager
+from pages import main_page, login_page
 
 import matplotlib
 matplotlib.use('Agg')  # 使用非图形后端
@@ -95,7 +91,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuthMiddleware)
 
 def app_shutdown():
-    status, seats_list = get_class_room_seats_by_classes_id(global_vars.class_room.id)
+    status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
     if status == 200:
         for item in seats_list:
             if isinstance(item, ClassRoomSeatsDao):
@@ -105,9 +101,9 @@ def app_shutdown():
 app.on_shutdown(app_shutdown)
 
 if __name__ in {"__main__", "__mp_main__"}:
-    if global_vars.mq.connect() is False:
-        print("MQTT连接失败，请检查配置文件")
-        exit(1)
-    global_vars.mq.loop_for_thread()
+    init_logger()
+    logger = logging.getLogger(__name__)
+    if global_vars.create_mq() is False:
+        logger.error("MQTT连接失败，请检查配置文件")
     api_manager.api_https = ulib.PoolManager(timeout=30.0)
     ui.run(title=strings.APP_NAME, port=8083, language='zh-CN', storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')

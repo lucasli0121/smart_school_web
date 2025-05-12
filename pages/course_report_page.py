@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 import time
-import json
 from typing import Optional
-from nicegui import ui
+from nicegui import ui, app
 from components import tables, cards
 from utils import global_vars
 from dao.course_dao import CourseDao
@@ -13,12 +12,6 @@ from selenium.webdriver.chrome.options import Options
 import threading as thread
 from queue import Queue
 
-course_dao = CourseDao()
-download_progress_row : Optional[ui.row] = None
-download_progress: Optional[ui.circular_progress] = None
-download_button : Optional[ui.button] = None
-download_timer: Optional[ui.timer] = None
-
 @dataclass
 class ProgressValue:
     value: float = 0.0
@@ -26,21 +19,20 @@ class ProgressValue:
         self.value = value
     def set_value(self, value: float):
         self.value = value
-progress_value = ProgressValue()
-
 #
 # @description: 显示课程报告页面
 # @param {int} course_id 课程ID
 # @return {*}
 #
-def show_course_report_page(course_id: int, show_person_report) -> None:
-    global course_dao
+def show_course_report_page(course_id: int, person_report_callback) -> None:
+    course_dao = CourseDao()
     course_dao.id = course_id
     status, result = course_dao.get_course_by_id()
     if status != 200:
         ui.notify(f'获取课程信息失败, {result}')
         return
-    status, report_result = get_course_report_by_course_id(global_vars.class_room.id, course_id)
+    app.storage.user['course_dao'] = course_dao
+    status, report_result = get_course_report_by_course_id(global_vars.get_class_room().id, course_id)
     if status != 200:
         if isinstance(report_result, str):
             ui.notify(f'获取课程报告失败, {report_result}')
@@ -63,19 +55,20 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                 ui.button('打印', icon='img:/static/images/printer@2x.png', on_click=print_course_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #27CACA !important; border-radius: 6px;')
-                global download_button
-                download_button = ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_course_report) \
+                app.storage.client['download_button'] = ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_course_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #65B6FF !important; border-radius: 6px;')
-                global download_progress_row
-                global download_progress
                 with ui.row().classes('w-[35px]') \
                     .style('background-color: #FFFFFF !important; border-radius: 50% !important;') as download_progress_row:
-                    download_progress = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=False) \
+                    app.storage.client['download_progress_row'] = download_progress_row
+                    app.storage.client['download_progress_row'].visible = False
+                    download_progress_ui = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=False) \
                         .classes('w-[30px] h-[30px]') \
                         .style('color: #65B6FF !important; background-color: #FFFFFF !important; border-radius: 50% !important;')
-                    download_progress.bind_value_from(progress_value)
-                download_progress_row.visible = False
+                    if 'download_process_value' not in app.storage.client:
+                        app.storage.client['download_process_value'] = ProgressValue(0.0)
+                    download_progress_ui.bind_value_from(app.storage.client['download_process_value'], 'value')
+                    app.storage.client['download_progress_ui'] = download_progress_ui
         with ui.row().classes('w-full mt-2 items-center place-content-start'):
             ui.icon('img:/static/images/group_student@2x.png').classes('w-[40px] h-[40px]')
             ui.label('一(4)班').classes('ml-2 text-[#333333] text-[14px]') \
@@ -280,7 +273,7 @@ def show_course_report_page(course_id: int, show_person_report) -> None:
                     'operation': ''
                 })
             sn += 1
-        tables.show_report_table(table_rows, show_person_report)
+        tables.show_report_table(table_rows, person_report_callback)
 
 #
 # @description: 打印课程报告
@@ -294,44 +287,48 @@ def print_course_report():
 def report_page(course_id: int):
     show_course_report_page(course_id, None)
 
-download_queue = Queue[int]()
-
+#
+# @description: 下载课程报告
+# @param {*}
+# @return {*}
+#
 def download_course_report():
-    if download_progress_row is not None:
-        download_progress_row.visible = True
-    if download_button is not None:
-        download_button.visible = False
+    if 'download_process_row' in app.storage.client:
+        app.storage.client['download_progress_row'].visible = True
+    if 'download_button' in app.storage.client:
+        app.storage.client['download_button'].visible = False
     def check_download_queue():
-        if not download_queue.empty():
-            value = download_queue.get()
+        if 'download_status_queue' not in app.storage.client:
+            app.storage.client['download_status_queue'] = Queue[int]()
+        if not app.storage.client['download_status_queue'].empty():
+            value = app.storage.client['download_status_queue'].get()
             if isinstance(value, int):
                 if value == 10:
-                    progress_value.set_value(1.0)
-                    if download_progress_row is not None:
-                        download_progress_row.visible = False
-                    if download_button is not None:
-                        download_button.visible = True
-                    if download_timer is not None:
-                        download_timer.cancel()
+                    app.storage.client['download_progress_value'].set_value(1.0)
+                    if 'download_progress_row' in app.storage.client:
+                        app.storage.client['download_progress_row'].visible = False
+                    if 'download_button' in app.storage.client:
+                        app.storage.client['download_button'].visible = True
+                    if 'download_timer' in app.storage.client:
+                        app.storage.client['download_timer'].cancel()
                     ui.notify('课程报告下载完成')
                 else:
                     v = value / 10
-                    progress_value.set_value(v)
+                    app.storage.client['download_progress_value'].set_value(v)
                 
             else:
                 ui.notify('课程报告下载失败')
-                if download_progress_row is not None:
-                    download_progress_row.visible = False
-                if download_button is not None:
-                    download_button.visible = True
-                if download_timer is not None:
-                    download_timer.cancel()
-    global download_timer
-    if download_timer is not None:
-        download_timer.cancel()
-    download_timer = ui.timer(1, callback=check_download_queue, immediate=True)
-    download_timer.activate()
-    thr = thread.Thread(target=generate_course_report_png, args=(course_dao.id,))
+                if 'download_progress_row' in app.storage.client:
+                    app.storage.client['download_progress_row'].visible = False
+                if 'download_button' in app.storage.client:
+                    app.storage.client['download_button'].visible = True
+                if 'download_timer' in app.storage.client:
+                    app.storage.client['download_timer'].cancel()
+    if 'download_timer' in app.storage.client:
+        app.storage.client['download_timer'].cancel()
+    app.storage.client['download_timer'] = ui.timer(1, callback=check_download_queue, immediate=True)
+    app.storage.client['download_timer'].activate()
+    thr = thread.Thread(target=generate_course_report_png, args=(app.storage.user['course_dao'].id,))
     thr.start()
 
 def generate_course_report_png(course_id: int):
@@ -341,19 +338,19 @@ def generate_course_report_png(course_id: int):
     options.add_argument('--disable-dev-shm-usage')
     while True:
         try:
-            download_queue.put(1)
+            app.storage.client['download_status_queue'].put(1)
             browser = webdriver.Chrome(options=options)
-            download_queue.put(3)
+            app.storage.client['download_status_queue'].put(3)
             url = f"http://localhost:8083/course_report/{course_id}"
             browser.get(url)
-            download_queue.put(4)
+            app.storage.client['download_status_queue'].put(4)
             browser.implicitly_wait(10)
             outfile= f'./course_report_{course_id}.png'
             browser.set_window_size(1920, 1080)  # 设置窗口大小
             browser.save_screenshot(outfile)
             browser.quit()
-            download_queue.put(2)
-            download_queue.put(10)
+            app.storage.client['download_status_queue'].put(2)
+            app.storage.client['download_status_queue'].put(10)
             break
         except Exception as e:
             time.sleep(0.1)

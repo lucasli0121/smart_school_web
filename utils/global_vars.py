@@ -1,60 +1,27 @@
-from nicegui import ui
+from nicegui import app
 from dao.classroom_dao import ClassRoomDao
-from navigation import navigation_switcher, HOME_NAVIGATION
-from typing import Optional
 from mq.mq_impl import MqImpl
-# Define global variables
-mq: MqImpl = MqImpl()
-header_title: Optional[ui.row] = None
-course_container: Optional[ui.tab_panel] = None
-tab_panels: Optional[ui.tab_panels] = None
-class_room = ClassRoomDao()
+mq_impl = MqImpl()
 
-def show_main_page_title() -> None:
-    if header_title is not None:
-        header_title.clear()
-        with header_title:
-            title = ui.label(navigation_switcher.get(HOME_NAVIGATION, '')).classes('place-self-center').style('font-size: 24px; color:#65B6FF')
-            title.bind_text_from(tab_panels, 'value', lambda value: value.props["label"] if not isinstance(value, str) else value)
+def set_class_room(class_room_obj: ClassRoomDao) -> None:
+    app.storage.general['class_room'] = class_room_obj
 
-def show_course_detail_title(onback) -> None:
-    if header_title is not None:
-        header_title.clear()
-        with header_title:
-            ui.icon('img:/static/images/back@2x.png') \
-                .classes('w-[24px] h-[24px]') \
-                .on('click', onback)
-            ui.label('课程管理 / ').classes('ml-2 text-[20px] text-[#333333]')
-            ui.label('课程详情').classes('text-[20px] text-[#65B6FF]')
+def get_class_room() -> ClassRoomDao:
+    if 'class_room' not in app.storage.general:
+        app.storage.general['class_room'] = ClassRoomDao()
+    return app.storage.general['class_room']
 
-def show_report_title(onback) -> None:
-    if header_title is not None:
-        header_title.clear()
-        with header_title:
-            ui.icon('img:/static/images/back@2x.png') \
-                .classes('w-[24px] h-[24px]') \
-                .on('click', onback)
-            ui.label('课程管理 / ').classes('ml-2 text-[20px] text-[#333333]')
-            ui.label('学习专注度报告').classes('text-[20px] text-[#65B6FF]')
+def create_mq() -> bool:
+    if mq_impl.connect() is False:
+        return False
+    mq_impl.loop_for_thread()
+    return True
 
-
-def show_person_report_title(onback) -> None:
-    if header_title is not None:
-        header_title.clear()
-        with header_title:
-            ui.icon('img:/static/images/back@2x.png') \
-                .classes('w-[24px] h-[24px]') \
-                .on('click', onback)
-            ui.label('课程管理 / 学习专注度报告 / ').classes('ml-2 text-[20px] text-[#333333]')
-            ui.label('个人报告').classes('text-[20px] text-[#65B6FF]')
-
-
-
-def subscribe_online_topic(mac: str, handle_online_func):
-    mq.subscribe(f'hjy-dev/device/heart_beat/{mac.lower()}', handle_online_func)
-def unsubscribe_online_topic(mac: str):
-    mq.unsubscribe(f'hjy-dev/device/heart_beat/{mac.lower()}')
-def subscribe_event_topic(mac: str, handle_event_func):
-    mq.subscribe(f'server-h03/study/event/{mac.lower()}', handle_event_func)
+def subscribe_online_topic(mac: str, handle_online_func) -> bool:
+    return mq_impl.subscribe(f'hjy-dev/device/heart_beat/{mac.lower()}', handle_online_func)
+def unsubscribe_online_topic(mac: str) -> bool:
+    return mq_impl.unsubscribe(f'hjy-dev/device/heart_beat/{mac.lower()}')
+def subscribe_event_topic(mac: str, handle_event_func) -> bool:
+    return mq_impl.subscribe(f'server-h03/study/event/{mac.lower()}', handle_event_func)
 def unsubscribe_event_topic(mac: str):
-    mq.unsubscribe(f'server-h03/study/event/{mac.lower()}')
+    mq_impl.unsubscribe(f'server-h03/study/event/{mac.lower()}')

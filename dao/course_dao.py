@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 from typing import Any
-
 import pytz
 from api import api_manager
 

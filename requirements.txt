@@ -13,3 +13,4 @@ pywinauto
 webdriver_manager
 pdfkit
 imgkit
+types-pytz
