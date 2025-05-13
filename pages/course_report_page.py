@@ -9,6 +9,7 @@ from dao.course_dao import CourseDao
 from dao.course_report_dao import CourseReportDao, get_course_report_by_course_id, CourseStudentsConcentrationDao, query_course_student_concentration
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 import threading as thread
 from queue import Queue
 
@@ -19,6 +20,7 @@ class ProgressValue:
         self.value = value
     def set_value(self, value: float):
         self.value = value
+download_progress_value = ProgressValue(0.0)        
 #
 # @description: 显示课程报告页面
 # @param {int} course_id 课程ID
@@ -58,17 +60,12 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                 app.storage.client['download_button'] = ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_course_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #65B6FF !important; border-radius: 6px;')
-                with ui.row().classes('w-[35px]') \
-                    .style('background-color: #FFFFFF !important; border-radius: 50% !important;') as download_progress_row:
-                    app.storage.client['download_progress_row'] = download_progress_row
-                    app.storage.client['download_progress_row'].visible = False
-                    download_progress_ui = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=False) \
-                        .classes('w-[30px] h-[30px]') \
-                        .style('color: #65B6FF !important; background-color: #FFFFFF !important; border-radius: 50% !important;')
-                    if 'download_process_value' not in app.storage.client:
-                        app.storage.client['download_process_value'] = ProgressValue(0.0)
-                    download_progress_ui.bind_value_from(app.storage.client['download_process_value'], 'value')
-                    app.storage.client['download_progress_ui'] = download_progress_ui
+                download_progress_ui = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=True) \
+                    .classes('w-[30px] h-[30px]') \
+                    .style('color: #65B6FF !important; background-color: #FFFFFF !important; border-radius: 50% !important;')
+                download_progress_ui.bind_value_from(download_progress_value, 'value')
+                app.storage.client['download_progress_ui'] = download_progress_ui
+                app.storage.client['download_progress_ui'].visible = False
         with ui.row().classes('w-full mt-2 items-center place-content-start'):
             ui.icon('img:/static/images/group_student@2x.png').classes('w-[40px] h-[40px]')
             ui.label('一(4)班').classes('ml-2 text-[#333333] text-[14px]') \
@@ -287,39 +284,42 @@ def print_course_report():
 def report_page(course_id: int):
     show_course_report_page(course_id, None)
 
+download_status_queue = Queue[int]()
 #
 # @description: 下载课程报告
 # @param {*}
 # @return {*}
 #
 def download_course_report():
-    if 'download_process_row' in app.storage.client:
-        app.storage.client['download_progress_row'].visible = True
+    if 'download_progress_ui' in app.storage.client:
+        app.storage.client['download_progress_ui'].visible = True
     if 'download_button' in app.storage.client:
         app.storage.client['download_button'].visible = False
+    download_progress_value.set_value(0.0)
     def check_download_queue():
-        if 'download_status_queue' not in app.storage.client:
-            app.storage.client['download_status_queue'] = Queue[int]()
-        if not app.storage.client['download_status_queue'].empty():
-            value = app.storage.client['download_status_queue'].get()
+        if not download_status_queue.empty():
+            value = download_status_queue.get()
             if isinstance(value, int):
                 if value == 10:
-                    app.storage.client['download_progress_value'].set_value(1.0)
-                    if 'download_progress_row' in app.storage.client:
-                        app.storage.client['download_progress_row'].visible = False
+                    download_progress_value.set_value(1.0)
+                    if 'download_progress_ui' in app.storage.client:
+                        app.storage.client['download_progress_ui'].visible = False
                     if 'download_button' in app.storage.client:
                         app.storage.client['download_button'].visible = True
                     if 'download_timer' in app.storage.client:
                         app.storage.client['download_timer'].cancel()
+                    course_id = app.storage.user['course_dao'].id
+                    outfile= f'./static/course_report_{course_id}.png'
+                    ui.download(outfile, f'course_report_{course_id}.png')
                     ui.notify('课程报告下载完成')
                 else:
                     v = value / 10
-                    app.storage.client['download_progress_value'].set_value(v)
+                    download_progress_value.set_value(v)
                 
             else:
                 ui.notify('课程报告下载失败')
-                if 'download_progress_row' in app.storage.client:
-                    app.storage.client['download_progress_row'].visible = False
+                if 'download_progress_ui' in app.storage.client:
+                    app.storage.client['download_progress_ui'].visible = False
                 if 'download_button' in app.storage.client:
                     app.storage.client['download_button'].visible = True
                 if 'download_timer' in app.storage.client:
@@ -338,19 +338,38 @@ def generate_course_report_png(course_id: int):
     options.add_argument('--disable-dev-shm-usage')
     while True:
         try:
-            app.storage.client['download_status_queue'].put(1)
+            download_status_queue.put(1)
             browser = webdriver.Chrome(options=options)
-            app.storage.client['download_status_queue'].put(3)
+            download_status_queue.put(2)
+            download_status_queue.put(3)
             url = f"http://localhost:8083/course_report/{course_id}"
             browser.get(url)
-            app.storage.client['download_status_queue'].put(4)
             browser.implicitly_wait(10)
-            outfile= f'./course_report_{course_id}.png'
-            browser.set_window_size(1920, 1080)  # 设置窗口大小
+            js_height = "return document.body.clientHeight"
+            k=1
+            height = browser.execute_script(js_height)
+            while True:
+                if k * 500 < height:
+                    browser.execute_script(f"window.scrollTo(0, {k * 500});")
+                    time.sleep(0.5)
+                    height = browser.execute_script(js_height)
+                    k += 1
+                else:
+                    break
+            download_status_queue.put(5)
+            time.sleep(1)
+            download_status_queue.put(7)
+            width = 1920#browser.execute_script("return Math.max(document.body.parentNode.scrollWidth, document.body.scrollWidth, document.body.offsetWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth, document.body.clientWidth, document.documentElement.clientWidth);")
+            height = browser.execute_script("return Math.max(document.body.parentNode.scrollHeight, document.body.scrollHeight, document.body.offsetHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight);")
+            print(f'width: {width}, height: {height}')
+            outfile= f'./static/course_report_{course_id}.png'
+            browser.set_window_size(width + 100, height + 100)  # 设置窗口大小
             browser.save_screenshot(outfile)
+            download_status_queue.put(8)
             browser.quit()
-            app.storage.client['download_status_queue'].put(2)
-            app.storage.client['download_status_queue'].put(10)
+            
+            download_status_queue.put(9)
+            download_status_queue.put(10)
             break
         except Exception as e:
             time.sleep(0.1)

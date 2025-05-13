@@ -5,6 +5,7 @@ from typing import Optional
 from nicegui import ui, app
 import pandas as pd
 import pytz
+import logging
 from components import dialogs, tables, cards
 from dao.course_dao import CourseDao, CourseStudentsDao, StudentInSeatsDao, query_student_in_seat
 from dao.classroom_dao import \
@@ -13,6 +14,8 @@ from dao.classroom_dao import \
 from dao.h03_event_dao import H03EventDao
 from dao.t1_attr_dao import T1AttrDao
 from utils import global_vars
+
+logger = logging.getLogger(__name__)
 
 def show_course_detail_page(course_id: int) -> None:
     if 'course_dao' not in app.storage.user:
@@ -154,6 +157,7 @@ def students_seat_subscribe(mac: str) -> None:
         cards.update_online_student_in_card(mac, jsobj['online'])
     global_vars.subscribe_online_topic(mac, online_msg)
     def event_msg(client, userdata, msg):
+        logger.info(f'event_msg: {msg.payload}')
         jsobj = json.loads(msg.payload)
         event_dao = H03EventDao()
         event_dao.from_json(jsobj)
@@ -161,6 +165,7 @@ def students_seat_subscribe(mac: str) -> None:
         cards.update_concentration_student_in_card(event_dao.mac, event_dao.focus_status, update_study_status_column)
     global_vars.subscribe_event_topic(mac, event_msg)
     def attr_msg(client, userdata, msg):
+        logger.info(f'attr_msg: {msg.payload}')
         jsobj = json.loads(msg.payload)
         attr_dao = T1AttrDao()
         attr_dao.from_json(jsobj)
