@@ -35,6 +35,9 @@ RUN apt-get update && apt-get install -y \
     xfonts-encodings \
     fontconfig \
     fonts-dejavu-core \
+    tzdata \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo 'Asia/Shanghai' > /etc/timezone \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN echo "deb http://archive.ubuntu.com/ubuntu focal main universe" >> /etc/apt/sources.list && \

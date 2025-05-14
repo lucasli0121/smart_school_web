@@ -1,1 +1,78 @@
-error.log
+error.log2025-05-14 15:54:14,645-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function
+2025-05-14 15:54:15,036-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function
+2025-05-14 15:54:15,061-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function
+2025-05-14 16:12:15,913-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function
+2025-05-14 16:12:15,928-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function
+2025-05-14 16:12:16,312-nicegui-131-ERROR: Type is not JSON serializable: function
+TypeError: Object of type function is not JSON serializable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/background_tasks.py", line 77, in _handle_task_result
+    task.result()
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/persistence/file_persistent_dict.py", line 51, in async_backup
+    await f.write(json.dumps(self, indent=self.indent))
+  File "/usr/local/lib/python3.10/dist-packages/nicegui/json/orjson_wrapper.py", line 40, in dumps
+    return orjson.dumps(obj, option=opts, default=_orjson_converter).decode('utf-8')
+TypeError: Type is not JSON serializable: function

@@ -117,7 +117,7 @@ def refresh_student_seat_card():
                             cards.student_in_seat_card(students)
         if 'check_event_timer' in app.storage.client:
             app.storage.client['check_event_timer'].cancel()
-        app.storage.client['check_event_timer'] = ui.timer(1, cards.check_student_status_queue)
+        app.storage.client['check_event_timer'] = ui.timer(0.1, cards.check_student_status_queue)
         app.storage.client['check_event_timer'].activate()
 
 #

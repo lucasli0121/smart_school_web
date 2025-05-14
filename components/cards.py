@@ -80,6 +80,7 @@ class StudyStatus:
         self.mac = ""
     def change_concentration(self):
         if self.mac in app.storage.client:
+            print(f"change_concentration, mac={self.mac} in app.storage.client")
             student_card = app.storage.client[self.mac]
             if student_card is None or student_card.concentration_row is None:
                 return
