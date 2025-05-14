@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 
 def init_logger():
     cfg_path = 'cfg/log.yaml'
+    if not os.path.exists("log"):
+        os.makedirs("log")
     if os.path.exists(cfg_path):
         with open(cfg_path, "r", encoding="utf-8") as f:
             config = yaml.load(f, yaml.FullLoader)
