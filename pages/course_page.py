@@ -176,9 +176,10 @@ def add_course():
                 status, ret = course.add_course()
                 if status is True:
                     ui.notify('添加课程成功')
-                    if 'course_table' in app.storage.client:
-                        app.storage.client['course_table'].add_row(course.__dict__)
-                        app.storage.client['course_table'].update()
+                    on_search()
+                    # if 'course_table' in app.storage.client:
+                    #     app.storage.client['course_table'].add_row(course.__dict__)
+                    #     app.storage.client['course_table'].update()
                     dialog.close()
                 else:
                     ui.notify(f'添加课程失败: {ret}')
