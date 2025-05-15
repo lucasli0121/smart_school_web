@@ -78,8 +78,12 @@ def on_search() -> None:
     if 'course_table' in app.storage.client:
         app.storage.client['course_table'].rows.clear()
         if status == 200:
+            sn = 1
             for item in result:
+                row_dict = item.__dict__
+                row_dict['sn'] = sn
                 app.storage.client['course_table'].add_row(item.__dict__)
+                sn += 1
         else:
             ui.notify(f'查询课程失败: {result}')
         app.storage.client['course_table'].update()

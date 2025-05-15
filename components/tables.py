@@ -17,7 +17,8 @@ from nicegui import ui
 
 def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table:
     table_columns = [
-        {'name': 'id', 'label': '序号', 'field': 'id', 'width': '5%', 'align': 'center'},
+        {'name': 'id', 'label': 'id', 'field': 'id', 'width': '0%', 'align': 'center'},
+        {'name': 'sn', 'label': '序号', 'field': 'sn', 'width': '5%', 'align': 'center'},
         {'name': 'classes', 'label': '班级', 'field': 'classes', 'width': '10%', 'align': 'center'},
         {'name': 'subject', 'label': '科目', 'field': 'subject', 'width': '10%', 'align': 'center'},
         {'name': 'teacher', 'label': '教师', 'field': 'teacher', 'width': '10%', 'align': 'center'},
@@ -32,7 +33,7 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
         rows=datas,
         row_key='id',
         selection='multiple',
-        pagination={'rowsPerPage': 10, 'sortBy': 'id', 'page': 1}) \
+        pagination={'rowsPerPage': 10, 'sortBy': 'sn', 'page': 1}) \
             .props('table-header-style="color: white; font-size: 16px; background-color: #65B6FF;"') \
             .classes('w-full mt-2 gap-0') \
             .style('border: 1px solid #ECECEC; border-radius: 10px 10px 0px 0px;') as table:
@@ -44,6 +45,7 @@ def show_course_table(datas, show_monitor, show_report, show_delete) -> ui.table
         #     </q-tr>
         # ''')
         table.props('v-model:selected="selected"')
+        table.props('visible-columns="[\'sn\', \'classes\', \'subject\', \'teacher\', \'begin_time\', \'end_time\', \'status\', \'name_list\', \'operation\']"')
         
         table.add_slot('body-cell-status', r'''
             <q-td auto-width key="status" :props="props" style="">
