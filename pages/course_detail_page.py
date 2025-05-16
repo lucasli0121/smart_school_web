@@ -129,6 +129,8 @@ def refresh_student_seat_card():
 def update_study_status_column(name: str, concentration: int, up: int) -> None:
     if name is None or name == "" or concentration is None or concentration == 0:
         return
+    if concentration == 1 and up == 1:
+        return
     if 'study_status_column' in app.storage.client:
         with app.storage.client['study_status_column']:
             with ui.row().classes('w-full'):
