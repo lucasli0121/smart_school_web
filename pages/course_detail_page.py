@@ -265,6 +265,7 @@ def start_course():
     if app.storage.user['course_dao'].status > 0:
         ui.notify('只有未开始的课程才能开始上课')
         return
+    app.storage.user['course_dao'].get_course_by_id()
     app.storage.user['course_dao'].begin_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
     app.storage.user['course_dao'].status = 1
     status, result = app.storage.user['course_dao'].update_course()
@@ -281,6 +282,7 @@ def start_course():
 # @return {*}
 #
 def end_course():
+    app.storage.user['course_dao'].get_course_by_id()
     if app.storage.user['course_dao'].status != 1:
         ui.notify('只有进行中的课程才能结束上课')
         return
