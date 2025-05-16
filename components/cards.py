@@ -85,12 +85,13 @@ class StudyStatus:
             if student_card is None or student_card.concentration_row is None:
                 return
             concentration_up = 0
-            if self.concentration_value > student_card.concentration_old_value:
-                concentration_up = 1
-            elif self.concentration_value < student_card.concentration_old_value:
-                concentration_up = -1
-            else:
-                concentration_up = 0
+            if self.concentration_value > 0:
+                if self.concentration_value > student_card.concentration_old_value:
+                    concentration_up = 1
+                elif self.concentration_value < student_card.concentration_old_value:
+                    concentration_up = -1
+                else:
+                    concentration_up = 0
             student_card.concentration_old_value = self.concentration_value
             if self.concentration_value == 1: # 低专注
                 with student_card.concentration_row:
