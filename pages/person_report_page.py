@@ -12,12 +12,12 @@ def show_person_report_page(course_id: int, id: int) -> None:
         ui.notify(f'获取课程信息失败, {result}')
         return
     app.storage.user['course_dao'] = course_dao
-    status, result = get_person_report_by_student_id(id)
+    status, report_result = get_person_report_by_student_id(id)
     if status != 200:
-        ui.notify(f'获取个人报告信息失败, {result}')
+        ui.notify(f'获取个人报告信息失败, {report_result}')
         return
-    if isinstance(result, PersonReportDao):
-        person_report_dao : PersonReportDao = result
+    if isinstance(report_result, PersonReportDao):
+        person_report_dao : PersonReportDao = report_result
         app.storage.user["person_report_dao"] = person_report_dao
     with ui.column().classes('w-full gap-0 mt-0 p-[15px] items-center place-content-start') \
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):

@@ -87,10 +87,12 @@ class PersonReportDao:
         study_score.from_json(json_data.get('study_score', {}))
         self.study_score = study_score
         person_flow_state_list = []
-        for item in json_data.get('person_flow_state', []):
-            person_flow_state = StudentPersonFlowState()
-            person_flow_state.from_json(item)
-            person_flow_state_list.append(person_flow_state)
+        flow_state_json = json_data.get('person_flow_state', [])
+        if flow_state_json is not None:
+            for item in json_data.get('person_flow_state', []):
+                person_flow_state = StudentPersonFlowState()
+                person_flow_state.from_json(item)
+                person_flow_state_list.append(person_flow_state)
         self.person_flow_state = person_flow_state_list
 
 
