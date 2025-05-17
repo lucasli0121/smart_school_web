@@ -84,7 +84,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if not request.url.path.startswith('/_nicegui') \
                 and not request.url.path.startswith('/login') \
                 and not request.url.path.startswith('/static') \
-                and not request.url.path.startswith('/course_report'):
+                and not request.url.path.startswith('/course_report') \
+                and not request.url.path.startswith('/person_report'):
                 app.storage.user['referrer_path'] = request.url.path
                 return RedirectResponse('/login')
         return await call_next(request)

@@ -1,8 +1,13 @@
+from queue import Queue
 from nicegui import ui, app
+import threading as thread
 from components import tables, cards, inputs
 from dao.person_report_dao import PersonReportDao, get_person_report_by_student_id
 from dao.course_dao import CourseDao
+from dao.progress_value import ProgressValue
+from utils.make_png import generate_png
 
+download_progress_value = ProgressValue(0.0)
 
 def show_person_report_page(course_id: int, id: int) -> None:
     course_dao = CourseDao()
@@ -32,9 +37,15 @@ def show_person_report_page(course_id: int, id: int) -> None:
                 ui.button('打印', icon='img:/static/images/printer@2x.png', on_click=print_person_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #27CACA !important; border-radius: 6px;')
-                ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_person_report) \
+                app.storage.client['download_button'] = ui.button('下载', icon='img:/static/images/download@2x.png', on_click=download_person_report) \
                     .classes('w-25 rounded-md text-white') \
                     .style('background-color: #65B6FF !important; border-radius: 6px;')
+                download_progress_ui = ui.circular_progress(value=0.0, min=0.0, max=1.0, show_value=True) \
+                    .classes('w-[30px] h-[30px]') \
+                    .style('color: #65B6FF !important; background-color: #FFFFFF !important; border-radius: 50% !important;')
+                download_progress_ui.bind_value_from(download_progress_value, 'value')
+                app.storage.client['download_progress_ui'] = download_progress_ui
+                app.storage.client['download_progress_ui'].visible = False
         with ui.row().classes('w-full mt-2 items-center place-content-start'):
             ui.icon('img:/static/images/group_student@2x.png').classes('w-[40px] h-[40px]')
             ui.label('一(4)班').classes('ml-2 text-[#333333] text-[14px]') \
@@ -246,13 +257,13 @@ def show_person_report_page(course_id: int, id: int) -> None:
                         'axisLine': {
                             'show': 0,
                         },
-                        'type': 'value'
+                        'type': 'value',
+                        'max': 100
                     },
                     
                     'series': [
                         {
                             'type': 'bar',
-                            'max': 100,
                             'barWidth': '30%',
                             'showBackground': 1,
                             'itemStyle': {
@@ -317,10 +328,55 @@ def show_person_report_page(course_id: int, id: int) -> None:
                     }).classes('w-full h-full')
         
 
-
+@ui.page('/person_report/{course_id}/{student_id}')
+def report_page(course_id: int, student_id: int):
+    show_person_report_page(course_id, student_id)
 
 def print_person_report() ->None:
     ui.notify('打印个人报告')
 
+download_status_queue = Queue[int]()
+
 def download_person_report() ->None:
-    ui.notify('下载个人报告')    
+    if 'download_progress_ui' in app.storage.client:
+        app.storage.client['download_progress_ui'].visible = True
+    if 'download_button' in app.storage.client:
+        app.storage.client['download_button'].visible = False
+    student_id = app.storage.user["person_report_dao"].student_id
+    course_id = app.storage.user['course_dao'].id
+    student_name = app.storage.user["person_report_dao"].student_name
+    url = f"http://localhost:8083/person_report/{course_id}/{student_id}"
+    outfile = f'./static/{student_name}_report.png'
+    download_progress_value.set_value(0.0)
+    def check_download_queue():
+        if not download_status_queue.empty():
+            value = download_status_queue.get()
+            if isinstance(value, int):
+                if value == 10:
+                    download_progress_value.set_value(1.0)
+                    if 'download_progress_ui' in app.storage.client:
+                        app.storage.client['download_progress_ui'].visible = False
+                    if 'download_button' in app.storage.client:
+                        app.storage.client['download_button'].visible = True
+                    if 'download_timer' in app.storage.client:
+                        app.storage.client['download_timer'].cancel()
+                    ui.download(outfile, f'{student_name}_report.png')
+                    ui.notify(f'{student_name}报告下载完成')
+                else:
+                    v = value / 10
+                    download_progress_value.set_value(v)
+                
+            else:
+                ui.notify('课程报告下载失败')
+                if 'download_progress_ui' in app.storage.client:
+                    app.storage.client['download_progress_ui'].visible = False
+                if 'download_button' in app.storage.client:
+                    app.storage.client['download_button'].visible = True
+                if 'download_timer' in app.storage.client:
+                    app.storage.client['download_timer'].cancel()
+    if 'download_timer' in app.storage.client:
+        app.storage.client['download_timer'].cancel()
+    app.storage.client['download_timer'] = ui.timer(1, callback=check_download_queue, immediate=True)
+    app.storage.client['download_timer'].activate()
+    thr = thread.Thread(target=generate_png, args=(url, outfile, download_status_queue))
+    thr.start()
