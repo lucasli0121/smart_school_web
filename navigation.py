@@ -27,6 +27,7 @@ navigation_switcher = {
 def show_main_page_title() -> None:
     app.storage.user['navigation'] = HOME_NAVIGATION
     ui.navigate.to('/')
+
             
 def show_course_detail_title(onback) -> None:
     app.storage.user['navigation'] = COURSE_DETAIL_NAVIGATION
@@ -51,6 +52,10 @@ def show_person_report_title(onback) -> None:
 def navigation_course_page() -> None:
     app.storage.user['navigation'] = HOME_NAVIGATION
     app.storage.user['course_container'] = COURSE_NAVIGATION
+    ui.navigate.to('/')
+
+def navigation_device_page() -> None:
+    app.storage.user['navigation'] = DEVICE_NAVIGATION
     ui.navigate.to('/')
 #
 # @description: 定义课堂报告页面,设置课堂报告类型

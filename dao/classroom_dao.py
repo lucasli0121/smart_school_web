@@ -99,9 +99,23 @@ param {*}
 return {*}
 """
 def get_class_room_seats_by_classes_id(class_room_id: int) -> tuple[int, str|list[ClassRoomSeatsDao]]:
+    return query_class_room_seats_by_condition(class_room_id, "", -1, -1)
+
+"""
+function:
+description: 根据教室ID和MAC地址从服务器查询教室座位数据
+param {*}
+return {*}
+"""    
+def query_class_room_seats_by_condition(class_room_id: int, mac: str, is_installed: int, is_online: int) -> tuple[int, str|list[ClassRoomSeatsDao]]:
     class_room_seats_list = list[ClassRoomSeatsDao]()
     url = f"{api_manager.server_url}/classes/queryClassRoomAndSeats"
-    fields = { "class_room_id": str(class_room_id) }
+    fields = {
+        "class_room_id": str(class_room_id),
+        "mac": mac,
+        "is_installed": str(is_installed),
+        "is_online": str(is_online)
+    }
     result = api_manager.api_https.request("GET", url=url, fields=fields)
     if result.status == 200:
         jobj = json.loads(result.data)
@@ -115,7 +129,7 @@ def get_class_room_seats_by_classes_id(class_room_id: int) -> tuple[int, str|lis
         else:
             return jobj["code"], jobj["message"]
     else:
-        return result.status, str(result.data)
+        return result.status, str(result.data)    
 """
 function:
 description: 批量导入设备

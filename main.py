@@ -100,6 +100,11 @@ def app_shutdown():
             if isinstance(item, ClassRoomSeatsDao):
                 if item.mac is not None and item.mac != "":
                     global_vars.unsubscribe_online_topic(item.mac)
+    authenticated = app.storage.user['authenticated']
+    app.storage.user.clear()
+    app.storage.client.clear()
+    app.storage.browser.clear()
+    app.storage.user['authenticated'] = authenticated
                     
 app.on_shutdown(app_shutdown)
 

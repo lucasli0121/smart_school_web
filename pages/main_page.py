@@ -78,7 +78,7 @@ def main_page() -> None:
         with ui.row():
             top_menu()
     tab_panels = show_tabs()
-    if app.storage.user['navigation'] == navigation.HOME_NAVIGATION:
+    if app.storage.user['navigation'] == navigation.HOME_NAVIGATION or app.storage.user['navigation'] == navigation.DEVICE_NAVIGATION:
         with header_row:
             header_row.clear()
             title = ui.label(navigation.navigation_switcher.get(navigation.HOME_NAVIGATION, '')).classes('place-self-center').style('font-size: 24px; color:#65B6FF')
@@ -117,7 +117,12 @@ def show_tabs() -> ui.tab_panels:
         with ui.tabs().props('vertical no-caps inline-label').classes('mt-[30px] text-white custom-tabs') as tabs:
             course = ui.tab(strings.get('course_management'), icon='img:/static/images/course.png').props('icon-left').classes('w-full h-[80px]')
             devices = ui.tab(strings.get('device_management'), icon='img:/static/images/devices.png').props('icon-left').classes('w-full h-[80px]')
-    with ui.tab_panels(tabs, value=course) \
+            tab_value = course
+            if app.storage.user['navigation'] == navigation.HOME_NAVIGATION:
+                tab_value = course
+            elif app.storage.user['navigation'] == navigation.DEVICE_NAVIGATION:
+                tab_value = devices
+    with ui.tab_panels(tabs, value=tab_value) \
         .props('vertical') \
         .classes('w-full h-full q-pa-none') \
         .style('margin: 0 !important; padding: 0 !important;') as tab_panels:

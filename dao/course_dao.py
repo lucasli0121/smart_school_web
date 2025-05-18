@@ -6,10 +6,6 @@ import pytz
 from api import api_manager
 
 
-course_page_no: int = 1
-course_page_size: int = 10
-course_total_page: int = 1
-
 @dataclass
 class CourseDao:
     id: int
@@ -129,8 +125,6 @@ return {*}
 def get_all_courses(classes, subject, teacher, begin_time, status) -> tuple[int, str|list[CourseDao]]:
     url = f"{api_manager.server_url}/course/queryCourseList"
     fields=[ \
-        ("pageNo", "1"), \
-        ("pageSize", "10"),\
         ("classes", classes), \
         ("subject", subject), \
         ("teacher", teacher), \
@@ -141,12 +135,6 @@ def get_all_courses(classes, subject, teacher, begin_time, status) -> tuple[int,
     if result.status == 200:
         jobj = json.loads(result.data)
         if jobj["code"] == 200:
-            global course_page_no
-            global course_page_size
-            global course_total_page
-            course_page_no = jobj.get('pageNo', 1)
-            course_page_size = jobj.get('pageSize', 10)
-            course_total_page = jobj.get('totalPage', 1)
             datas = jobj.get('data', [])
             course_list = []
             for item in datas:

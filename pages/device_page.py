@@ -1,13 +1,22 @@
 import pandas as pd
+from dataclasses import dataclass
 from nicegui import ui,events, app
 from components import cards, inputs, tables, dialogs
 from dao.classroom_dao import \
     ClassRoomDao, \
     ClassRoomSeatsDao, \
     get_class_room_seats_by_classes_id, \
+    query_class_room_seats_by_condition, \
     add_device_to_class_room, \
     remove_device_from_seats
 from utils import global_vars
+
+@dataclass
+class SearchCondition:
+    mac: str = ""
+    installed_value: str = ""
+    isonline_value: str = ""
+search_condition = SearchCondition()
 
 def show_device_page(tab_panel):
     class_room = ClassRoomDao()
@@ -19,10 +28,10 @@ def show_device_page(tab_panel):
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         with ui.row().classes('h-full items-center'):
             ui.label('总座位数:').classes('text-[20px] font-bold test-[#333333]')
-            ui.label('48').classes('text-[20px] font-bold text-[#65B6FF]') \
+            app.storage.client['seat_total_number_label'] = ui.label('48').classes('text-[20px] font-bold text-[#65B6FF]') \
                 .bind_text_from(global_vars.get_class_room(), 'seat_total_number')
             ui.label('已使用座位:').classes('ml-3 text-[20px] font-bold test-[#333333]')
-            ui.label('24').classes('text-[20px] font-bold text-[#65B6FF]') \
+            app.storage.client['seat_used_label'] = ui.label('24').classes('text-[20px] font-bold text-[#65B6FF]') \
                 .bind_text_from(global_vars.get_class_room(), 'seat_used')
         with ui.row().classes('h-full items-center'):
             ui.button('批量删除', icon='img:/static/images/delete@2x.png', on_click=delete_device) \
@@ -66,14 +75,17 @@ def show_device_page(tab_panel):
                     '已安装',
                     '未安装',
                 ]
-                inputs.selection_w40(device_status, device_status[0], on_change=lambda e: ui.notify(e))
+                inputs.selection_w40(device_status, device_status[0], on_change=lambda e: refresh_device_table()) \
+                    .bind_value_to(search_condition, 'installed_value')
                 online_status = [
                     '全部',
                     '在线',
                     '离线',
                 ]
-                inputs.selection_w40(online_status, online_status[0], on_change=lambda e: ui.notify(e))
-                inputs.input_search_w60('请输入设备码搜索', on_enterkey=lambda e: ui.notify(e))
+                inputs.selection_w40(online_status, online_status[0], on_change=lambda e: refresh_device_table()) \
+                    .bind_value_to(search_condition, 'isonline_value')
+                inputs.input_search_w60('请输入设备码搜索', on_enterkey=lambda e: refresh_device_table()) \
+                    .bind_value_to(search_condition, 'mac')
             
             table_rows: list[dict] = []
             device_table = tables.show_devices_table(table_rows, device_edit, device_delete_one)
@@ -89,12 +101,14 @@ def show_device_page(tab_panel):
                         continue
     refresh_device_table()
 
-'''
-# @description: 刷新设备列表
-# @param None
-# @return: None
-'''
-def refresh_device_table():
+def refresh_all():
+    refresh_device_seats()
+    refresh_device_table()
+
+def refresh_device_seats():
+    global_vars.get_class_room().get_class_room()
+    if 'seat_used_label' in app.storage.client:
+        app.storage.client['seat_used_label'].text = global_vars.get_class_room().seat_used
     status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
     if status != 200:
         ui.notify(f'查询教室座位失败: {str(seats_list)}')
@@ -114,6 +128,34 @@ def refresh_device_table():
                                 cards.seat_card(seat)
                             else:
                                 continue
+'''
+# @description: 刷新设备列表
+# @param None
+# @return: None
+'''
+def refresh_device_table():
+    is_installed = -1
+    match search_condition.installed_value:
+        case '全部':
+            is_installed = -1
+        case '已安装':
+            is_installed = 1
+        case '未安装':
+            is_installed = 0
+        case _:
+            is_installed = -1
+    is_online = -1
+    match search_condition.isonline_value:
+        case '全部':
+            is_online = -1
+        case '在线':
+            is_online = 1
+        case '离线':
+            is_online = 0
+        case _:
+            is_online = -1
+    status, seats_list = query_class_room_seats_by_condition(global_vars.get_class_room().id, search_condition.mac, is_installed, is_online)
+    if status == 200:
         table_rows: list[dict] = []
         if 'device_table' in app.storage.client:
             app.storage.client['device_table'].rows.clear()
@@ -127,6 +169,7 @@ def refresh_device_table():
                     else:
                         continue
                 app.storage.client['device_table'].add_rows(table_rows)
+                app.storage.client['device_table'].update()
 
 #
 # @description: 添加设备
@@ -146,7 +189,7 @@ def add_device():
             ui.notify(f'导入设备失败: {result}')
             return
         ui.notify('添加设备成功')
-        refresh_device_table()
+        refresh_all()
         dialog.close()
     dialog = dialogs.show_install_device_dialog(onok=on_ok)
 
@@ -176,7 +219,7 @@ def import_device():
                 ui.notify(f'导入设备失败: {result}')
                 return
         ui.notify('导入设备成功')
-        refresh_device_table()
+        refresh_all()
         dialog.close()
 
     with ui.dialog().props('persistent') as dialog, ui.card().classes('w-1/3 h-1/3') \
@@ -202,7 +245,7 @@ def delete_device():
             if result is False:
                 ui.notify(msg)
                 break
-        refresh_device_table()
+        refresh_all()
 
 def device_edit(e: events.GenericEventArguments):
     ui.notify(f'编辑设备 {e.args["mac"]}')
@@ -212,7 +255,7 @@ def device_delete_one(e: events.GenericEventArguments):
     result, msg = delete_device_with_seatno(seat_no)
     ui.notify(msg)
     if result is True:
-        refresh_device_table()
+        refresh_all()
 
 def delete_device_with_seatno(seat_no: str) -> tuple[bool, str]:
     class_room_id = global_vars.get_class_room().id

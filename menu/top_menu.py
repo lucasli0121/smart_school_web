@@ -9,6 +9,8 @@ from nicegui import ui,app
 
 def logout() -> None:
     app.storage.user.clear()
+    app.storage.browser.clear()
+    app.storage.general.clear()
     ui.navigate.to('/login')
 
 def top_menu() -> None:
