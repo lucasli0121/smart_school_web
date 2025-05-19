@@ -193,6 +193,11 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                             {
                                 'type': 'pie',
                                 'radius': ['30%', '60%'],
+                                'label': {
+                                    'formatter': '{b}\n({c}人)',
+                                    'minMargin': 5,
+                                    'lineHeight': 15
+                                },
                                 'color':['#FFA137','#F4635E','#4D82FB','#65B6FF'],
                                 'data': [
                                     {'value': report_dao.deep_concentration_distribution.less_than_10_min_num, 'name': '小于10分钟'},
@@ -228,6 +233,11 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                             {
                                 'type': 'pie',
                                 'radius': ['30%', '60%'],
+                                'label': {
+                                    'formatter': '{b}\n({c}人)',
+                                    'minMargin': 5,
+                                    'lineHeight': 15
+                                },
                                 'data': [
                                     {'value': report_dao.mid_concentration_distribution.less_than_10_min_num, 'name': '小于10分钟', 'itemStyle': {'color': '#674CF5'}},
                                     {'value': report_dao.mid_concentration_distribution.less_than_20_min_num, 'name': '10-20分钟', 'itemStyle': {'color': '#29B479'}},
@@ -260,10 +270,9 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                 low :float = 0.0
                 mid :float = 0.0
                 deep :float = 0.0
-                if item.total_concentration is not None and item.total_concentration > 0:
-                    low = round(item.low_concentration / item.total_concentration * 100, 2)
-                    mid = round(item.mid_concentration / item.total_concentration * 100, 2)
-                    deep = round(item.deep_concentration / item.total_concentration * 100, 2)
+                low = round(item.low_concentration, 2)
+                mid = round(item.mid_concentration, 2)
+                deep = round(item.deep_concentration, 2)
                 table_rows.append({
                     'course_id': course_id,
                     'id': item.student_id,

@@ -107,9 +107,9 @@ class CourseStudentsConcentrationDao:
     student_id: int
     name: str
     gender: int
-    low_concentration: int
-    mid_concentration: int
-    deep_concentration: int
+    low_concentration: float
+    mid_concentration: float
+    deep_concentration: float
     total_concentration: int
 
     def __init__(self, course_id=0, student_id=0, name="", gender=0, low_concentration=0, mid_concentration=0, deep_concentration=0, total_concentration=0):
@@ -126,9 +126,9 @@ class CourseStudentsConcentrationDao:
         self.student_id = json_data.get('student_id', 0)
         self.name = json_data.get('name', "")
         self.gender = json_data.get('gender', 0)
-        self.low_concentration = json_data.get('low_concentration', 0)
-        self.mid_concentration = json_data.get('mid_concentration', 0)
-        self.deep_concentration = json_data.get('deep_concentration', 0)
+        self.low_concentration = json_data.get('low_concentration', 0.0)
+        self.mid_concentration = json_data.get('mid_concentration', 0.0)
+        self.deep_concentration = json_data.get('deep_concentration', 0.0)
         self.total_concentration = json_data.get('total_concentration', 0)
 
 
