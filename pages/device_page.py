@@ -231,6 +231,11 @@ def import_device():
             ui.upload(label="请选择批量上传文件", on_upload=handle_upload) \
                 .props('flat accept=".xls,.xlsx"') \
                 .classes('size-full')
+        with ui.row().classes('w-full place-content-end'):
+            ui.button('关闭', color=None, on_click=dialog.close) \
+                .props('flat') \
+                .classes('w-[120px] text-[16px] text-[#888888] font-[400]') \
+                .style('background-color: #FFFFFF !important;border-radius: 10px;border: 1px solid #888888;')
     dialog.open()
     
 '''
