@@ -37,6 +37,9 @@ def show_device_page(tab_panel):
             ui.button('批量删除', icon='img:/static/images/delete@2x.png', on_click=delete_device) \
                 .classes('w-25 rounded-md text-red') \
                 .style('background-color: rgba(255,77,77,0.39) !important')
+            ui.button('刷新', icon='img:/static/images/refresh@2x.png', on_click=refresh_all) \
+                .classes('w-25 rounded-md text-white') \
+                .style('background-color: #6C96FB !important')
             ui.button('批量导入', icon='img:/static/images/import@2x.png', on_click=import_device) \
                 .classes('w-25 rounded-md text-white') \
                 .style('background-color: #65B6FF !important')

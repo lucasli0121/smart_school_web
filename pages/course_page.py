@@ -54,6 +54,9 @@ def show_course_page() -> None:
             ui.button('批量删除', icon='img:/static/images/delete@2x.png', on_click=del_select_course) \
                 .classes('w-25 rounded-md text-red') \
                 .style('background-color: rgba(255,77,77,0.39) !important')
+            ui.button('刷新', icon='img:/static/images/refresh@2x.png', on_click=on_search) \
+                .classes('w-25 rounded-md text-white') \
+                .style('background-color: #6C96FB !important')
             ui.button('创建课程', icon='img:/static/images/add_course@2x.png', on_click=add_course) \
                 .classes('w-25 rounded-md text-white') \
                 .style('background-color: #65B6FF !important')
