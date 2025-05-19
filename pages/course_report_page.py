@@ -6,7 +6,7 @@ from nicegui import ui, app
 from components import tables, cards
 from utils import global_vars
 from dao.course_dao import CourseDao
-from dao.course_report_dao import CourseReportDao, get_course_report_by_course_id, CourseStudentsConcentrationDao, query_course_student_concentration
+from dao.course_report_dao import CourseReportDao, ConcentrationTrade, get_course_report_by_course_id, CourseStudentsConcentrationDao, query_course_student_concentration
 from dao.progress_value import ProgressValue
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -38,10 +38,21 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
         ui.notify('获取课程报告失败, 数据格式错误')
         return
     report_dao: CourseReportDao = report_result
-    trade_time = [datetime.strptime(item.create_time, '%Y-%m-%d %H:%M:%S').strftime('%H:%M') for item in report_dao.concentration_trade]
-    deep_concentration = [item.deep_concentration_num for item in report_dao.concentration_trade]
-    mid_concentration = [item.mid_concentration_num for item in report_dao.concentration_trade]
-    low_concentration = [item.low_concentration_num for item in report_dao.concentration_trade]
+    trade_time = []
+    deep_concentration_trade = []
+    mid_concentration_trade = []
+    low_concentration_trade = []
+    if report_dao.concentration_trade is not None:
+        report_dao.concentration_trade.sort(key=lambda x: x.create_time)
+    for item in report_dao.concentration_trade:
+        if isinstance(item, ConcentrationTrade):
+            start_time = datetime.strptime(item.create_time, '%Y-%m-%d %H:%M:%S').strftime('%H:%M')
+            if start_time not in trade_time:
+                trade_time.append(start_time)
+                deep_concentration_trade.append(item.deep_concentration_num)
+                mid_concentration_trade.append(item.mid_concentration_num)
+                low_concentration_trade.append(item.low_concentration_num)
+    print(trade_time)
     with ui.column().classes('w-full gap-0 mt-0 p-[15px] items-center place-content-start') \
         .style('background-color: #FFFFFF !important; border-radius: 10px;'):
         with ui.row().classes('w-full gap-0 items-center place-content-between'):
@@ -136,7 +147,7 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': deep_concentration
+                            'data': deep_concentration_trade
                         },
                         {
                             'name':'中度专注',
@@ -147,7 +158,7 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': mid_concentration
+                            'data': mid_concentration_trade
                         },
                         {
                             'name':'浅度专注',
@@ -158,7 +169,7 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                             'emphasis': {
                                 'focus': 'series'
                             },
-                            'data': low_concentration
+                            'data': low_concentration_trade
                         },
                     ]
                 }).classes('w-full h-full')
