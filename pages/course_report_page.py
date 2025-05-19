@@ -270,9 +270,9 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
                 low :float = 0.0
                 mid :float = 0.0
                 deep :float = 0.0
-                low = round(item.low_concentration, 2)
-                mid = round(item.mid_concentration, 2)
-                deep = round(item.deep_concentration, 2)
+                low = round(item.low_concentration*100, 2)
+                mid = round(item.mid_concentration*100, 2)
+                deep = round(item.deep_concentration*100, 2)
                 table_rows.append({
                     'course_id': course_id,
                     'id': item.student_id,
