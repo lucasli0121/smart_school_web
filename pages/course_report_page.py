@@ -11,7 +11,7 @@ from dao.progress_value import ProgressValue
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from utils.make_png import generate_png
+from utils.make_png import generate_png, open_printer
 import threading as thread
 from queue import Queue
 
@@ -287,17 +287,21 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
             sn += 1
         tables.show_report_table(table_rows, person_report_callback)
 
+
+
+@ui.page('/course_report/{course_id}')
+def report_page(course_id: int):
+    show_course_report_page(course_id, None)
+
 #
 # @description: 打印课程报告
 # @param {*}
 # @return {*}
 #
 def print_course_report():
-    ui.notify('print course report')
-
-@ui.page('/course_report/{course_id}')
-def report_page(course_id: int):
-    show_course_report_page(course_id, None)
+    url = f"http://localhost:8083/course_report/{app.storage.user['course_dao'].id}"
+    thr = thread.Thread(target=open_printer, args=(url,))
+    thr.start()
 
 download_status_queue = Queue[int]()
 #

@@ -1,6 +1,9 @@
 from typing import Callable
 from nicegui import ui,app
 from queue import Queue
+import logging
+
+logger = logging.getLogger(__name__)
 
 def seat_card(seat):
     with ui.card().classes('w-[120px] h-[90px]') \
@@ -80,9 +83,10 @@ class StudyStatus:
         self.mac = ""
     def change_concentration(self):
         if self.mac in app.storage.client:
-            print(f"change_concentration, mac={self.mac} in app.storage.client")
+            logger.info(f"change_concentration, mac={self.mac} in app.storage.client")
             student_card = app.storage.client[self.mac]
             if student_card is None or student_card.concentration_row is None:
+                logger.info("change_concentration, student_card is None or concentration_row is None return")
                 return
             concentration_up = 0
             if self.concentration_value > 0:
@@ -107,6 +111,8 @@ class StudyStatus:
                     ui.icon('circle').classes('text-[#27CACA] w-4 h-4')
             if self.concentration_callback is not None:
                 self.concentration_callback(student_card.student_name, self.concentration_value, concentration_up)
+            else:
+                logger.info(f"change_concentration, concentration_callback is None, mac={self.mac}")
     def change_online(self):
         if self.mac in app.storage.client:
             student_card = app.storage.client[self.mac]
