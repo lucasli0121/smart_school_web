@@ -46,7 +46,7 @@ def show_course_report_page(course_id: int, person_report_callback) -> None:
         report_dao.concentration_trade.sort(key=lambda x: x.create_time)
     for item in report_dao.concentration_trade:
         if isinstance(item, ConcentrationTrade):
-            start_time = datetime.strptime(item.create_time, '%Y-%m-%d %H:%M:%S').strftime('%H:%M')
+            start_time = datetime.strptime(item.create_time, '%Y-%m-%d %H:%M:%S').strftime('%H:%M:%S')
             if start_time not in trade_time:
                 trade_time.append(start_time)
                 deep_concentration_trade.append(item.deep_concentration_num)
