@@ -108,7 +108,7 @@ def show_person_report_page(course_id: int, id: int) -> None:
                     with ui.row().classes('gap-0 items-center place-content-center'):
                         ui.label('5').classes('text-[#333333] text-[30px]') \
                             .bind_text_from(app.storage.user["person_report_dao"], 'posture_not_correct_time')
-                        ui.label('5分钟').classes('text-[#333333] text-[30px]')
+                        ui.label('分钟').classes('text-[#333333] text-[30px]')
                 ui.icon('img:/static/images/inposture_time_long@2x.png').classes('w-[70px] h-[70px]')
     with ui.row().classes('w-full h-[400px] gap-0 mt-3 items-center justify-between'):
         with ui.column().classes('gap-0 p-[15px] items-center') \
