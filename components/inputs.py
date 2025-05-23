@@ -58,7 +58,7 @@ def date_input_w40(placeholder, on_enterkey) -> ui.input:
         .props('autofocus rounded-md outlined dense') \
         .classes('w-40 self-center item-center ') as date_input:
         with ui.menu().props('no-parent-event') as menu:
-            with ui.date().bind_value(date_input):
+            with ui.date().bind_value(date_input).on_value_change(on_enterkey):
                 with ui.row().classes('justify-end'):
                     ui.button('Close', on_click=menu.close).props('flat')
     with date_input.add_slot('append'):
