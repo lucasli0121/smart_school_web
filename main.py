@@ -94,16 +94,23 @@ class AuthMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuthMiddleware)
 
 def app_shutdown():
-    status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
-    if status == 200:
-        for item in seats_list:
-            if isinstance(item, ClassRoomSeatsDao):
-                if item.mac is not None and item.mac != "":
-                    global_vars.unsubscribe_online_topic(item.mac)
+    try:
+        status, seats_list = get_class_room_seats_by_classes_id(global_vars.get_class_room().id)
+        if status == 200:
+            for item in seats_list:
+                if isinstance(item, ClassRoomSeatsDao):
+                    if item.mac is not None and item.mac != "":
+                        global_vars.unsubscribe_online_topic(item.mac)
+    except Exception as e:
+        pass
     authenticated = app.storage.user['authenticated']
-    app.storage.user.clear()
-    app.storage.client.clear()
-    app.storage.browser.clear()
+    try:
+        app.storage.user.clear()
+        app.storage.client.clear()
+        app.storage.browser.clear()
+        app.storage.general.clear()
+    except Exception as e:
+        pass
     app.storage.user['authenticated'] = authenticated
                     
 app.on_shutdown(app_shutdown)
