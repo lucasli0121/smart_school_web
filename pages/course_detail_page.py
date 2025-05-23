@@ -14,6 +14,8 @@ from dao.classroom_dao import \
 from dao.h03_event_dao import H03EventDao
 from dao.t1_attr_dao import T1AttrDao
 from utils import global_vars
+from components import dialogs
+import navigation
 
 logger = logging.getLogger(__name__)
 
@@ -287,18 +289,23 @@ def end_course():
         ui.notify('只有进行中的课程才能结束上课')
         return
     if app.storage.user['course_dao'].status == 2:
-        ui.notify('课程已经结束')
+        ui.notify('课程已经结束，不能重复结束')
         return
-    app.storage.user['course_dao'].end_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-    app.storage.user['course_dao'].status = 2
-    if app.storage.user['course_dao'].begin_time is not None and app.storage.user['course_dao'].end_time is not None:
-        start = datetime.strptime(app.storage.user['course_dao'].begin_time, '%Y-%m-%d %H:%M:%S')
-        end = datetime.strptime(app.storage.user['course_dao'].end_time, '%Y-%m-%d %H:%M:%S')
-        app.storage.user['course_dao'].duration = (end - start).total_seconds() / 60
-    status, result = app.storage.user['course_dao'].update_course()
-    if status:
-        ui.notify('结束课程成功，请返回课程列表')
-    else:
-        ui.notify(f'结束课程失败: {result}')
+    def on_end_course():
+        app.storage.user['course_dao'].end_time = datetime.now(pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+        app.storage.user['course_dao'].status = 2
+        if app.storage.user['course_dao'].begin_time is not None and app.storage.user['course_dao'].end_time is not None:
+            start = datetime.strptime(app.storage.user['course_dao'].begin_time, '%Y-%m-%d %H:%M:%S')
+            end = datetime.strptime(app.storage.user['course_dao'].end_time, '%Y-%m-%d %H:%M:%S')
+            app.storage.user['course_dao'].duration = (end - start).total_seconds() / 60
+        status, result = app.storage.user['course_dao'].update_course()
+        if status:
+            ui.notify('结束课程成功，返回课程列表')
+            navigation.navigation_course_page()
+        else:
+            ui.notify(f'结束课程失败: {result}')
+
+    dialogs.make_sure_dialog('确定结束课程吗？', on_ok=on_end_course)
+    
 
 
