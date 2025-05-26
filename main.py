@@ -120,5 +120,9 @@ if __name__ in {"__main__", "__mp_main__"}:
     logger = logging.getLogger(__name__)
     if global_vars.create_mq() is False:
         logger.error("MQTT连接失败，请检查配置文件")
-    api_manager.api_https = ulib.PoolManager(timeout=30.0)
-    ui.run(title=strings.APP_NAME, port=8083, language='zh-CN', storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')
+    api_manager.api_https = ulib.PoolManager(timeout=60.0)
+    ui.run(title=strings.APP_NAME,
+        port=8083,
+        language='zh-CN',
+        reconnect_timeout=120,
+        storage_secret='a719a08c-30c5-4d19-8116-05af7d6b3cec')
