@@ -127,6 +127,13 @@ class StudyStatus:
 
 student_status_queue :Queue[StudyStatus] = Queue()
 
+def init_student_status_queue():
+    global student_status_queue
+    if student_status_queue is None:
+        student_status_queue = Queue()
+    else:
+        student_status_queue.queue.clear()
+        
 #
 # @description: 定义学生座位卡片,用于界面显示
 # @param {dict} student 学生信息字典
@@ -191,6 +198,8 @@ def check_student_status_queue():
         study_status = student_status_queue.get()
         if study_status is None:
             return
+        
+        logger.info(f'queue size:{student_status_queue.qsize()}')
         if isinstance(study_status, StudyStatus):
             if study_status.update_flag == 1:
                 study_status.change_online()
