@@ -121,7 +121,7 @@ def refresh_student_seat_card():
             app.storage.client['check_event_timer'].cancel()
         # 启动定时器检查学生状态
         cards.init_student_status_queue()            
-        app.storage.client['check_event_timer'] = ui.timer(0.01, cards.check_student_status_queue)
+        app.storage.client['check_event_timer'] = ui.timer(0.02, cards.check_student_status_queue)
         app.storage.client['check_event_timer'].activate()
 
 #
